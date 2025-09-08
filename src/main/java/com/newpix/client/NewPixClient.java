@@ -1,4 +1,4 @@
-package com.newpix.client;
+﻿package com.newpix.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.newpix.util.ErrorHandler;

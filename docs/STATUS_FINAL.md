@@ -1,4 +1,4 @@
-# ✅ PROJETO CONCLUÍDO - NewPix Banking System
+﻿# ✅ PROJETO CONCLUÍDO - NewPix Banking System
 
 ## 📋 Status Final: COMPLETO ✅
 

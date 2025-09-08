@@ -1,4 +1,4 @@
-# 🎮 GUIA COMPLETO DE TESTE - Sistema NewPix
+﻿# 🎮 GUIA COMPLETO DE TESTE - Sistema NewPix
 
 ## ✅ **OPÇÕES DE EXECUÇÃO (TODAS FUNCIONAIS)**
 

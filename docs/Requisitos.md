@@ -1,4 +1,4 @@
-Requisitos Funcionais e Não Funcionais do Projeto Final (Transferência de Pix)
+﻿Requisitos Funcionais e Não Funcionais do Projeto Final (Transferência de Pix)
 
 Nome Projeto : NewPix® - Envio e recebimento de PIX
 

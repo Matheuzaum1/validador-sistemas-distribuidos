@@ -1,16 +1,16 @@
-# Compiled class file
+﻿# ==========================================
+# Java
+# ==========================================
 *.class
-
-# Log file
 *.log
-
-# BlueJ files
 *.ctxt
-
-# Mobile Tools for Java (J2ME)
 .mtj.tmp/
+hs_err_pid*
+replay_pid*
 
-# Package Files #
+# ==========================================
+# Package Files
+# ==========================================
 *.jar
 *.war
 *.nar
@@ -19,11 +19,9 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
-
+# ==========================================
 # Maven
+# ==========================================
 target/
 pom.xml.tag
 pom.xml.releaseBackup
@@ -35,20 +33,37 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
-# IDE
+# ==========================================
+# IDEs
+# ==========================================
+.vscode/
 .idea/
 *.iml
 *.iws
-.vscode/
-.settings/
-.project
+*.ipr
 .classpath
+.project
+.settings/
+*.swp
+*.swo
+*~
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Database
+# ==========================================
+# Sistema NewPix - Arquivos Temporários
+# ==========================================
 *.db
-*.sqlite
-*.sqlite3
+*.db-journal
+newpix.db*
+logs/
+temp/
+
+# ==========================================
+# Sistema Operacional
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

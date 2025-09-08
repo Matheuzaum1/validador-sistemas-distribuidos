@@ -1,4 +1,4 @@
-# NewPix® - Sistema Bancário Distribuído
+﻿# NewPix® - Sistema Bancário Distribuído
 
 Sistema bancário distribuído desenvolvido em Java que implementa funcionalidades de PIX (transferências instantâneas) com arquitetura cliente-servidor usando sockets TCP e protocolo JSON.
 

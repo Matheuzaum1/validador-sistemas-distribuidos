@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 echo ======================================
 echo      TESTE SIMPLES - Sistema NewPix
 echo ======================================

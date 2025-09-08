@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 echo ======================================
 echo         NewPix - Executar Testes
 echo ======================================
