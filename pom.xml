@@ -68,6 +68,32 @@
                 <version>3.0.0-M9</version>
             </plugin>
             
+            <!-- Plugin para criar JAR executável com dependências -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.newpix.server.NewPixServer</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -75,7 +101,54 @@
                 <configuration>
                     <mainClass>com.newpix.server.gui.ServerGUI</mainClass>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>run-server</id>
+                        <configuration>
+                            <mainClass>com.newpix.server.NewPixServer</mainClass>
+                            <commandlineArgs>8080</commandlineArgs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>run-client</id>
+                        <configuration>
+                            <mainClass>com.newpix.client.gui.LoginGUI</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
+    
+    <profiles>
+        <profile>
+            <id>server</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <configuration>
+                            <mainClass>com.newpix.server.NewPixServer</mainClass>
+                            <commandlineArgs>8080</commandlineArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>client</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <configuration>
+                            <mainClass>com.newpix.client.gui.LoginGUI</mainClass>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
