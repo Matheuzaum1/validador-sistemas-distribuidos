@@ -68,6 +68,7 @@ Validator.validateServer(jsonParaEnviar);
 A função pode lançar uma exceção ou imprimir no console caso a mensagem esteja fora dos padrões definidos.
 
 ## 3. Regras de Negócio e Padrões Gerais
+Essas são as regras de negócio do protocolo, não as do Sistema Bancário
 
 ### 3.1. Estrutura de Dados
 
@@ -91,6 +92,7 @@ Toda mensagem trocada deve conter um campo `operacao`. Em envios de mensagem ao 
 * `usuario_deletar`
 * `transacao_criar`
 * `transacao_ler`
+* `depositar`
 
 ### 3.3. Padrão de Resposta (`status` e `info`)
 
@@ -107,7 +109,7 @@ Caso `status` retornado seja false, significa que ocorreu um erro ao processar a
 
 ### 3.4. Padrão do Token de Autenticação
 
-O token de sessão, gerado no login e utilizado para autenticar operações subsequentes, deve ser sempre tratado como uma  **String** .
+O token de sessão, gerado no login e utilizado para autenticar operações subsequentes, deve ser sempre tratado como uma  **String**.<br>
 
 ## 4. Protocolo da API: Objetos e Mensagens
 
@@ -260,7 +262,8 @@ A seguir, a especificação detalhada para cada operação.
 
 ### 4.5. Atualização de Dados do Usuário (`usuario_atualizar`)
 
-*Nota: Apenas os campos a serem alterados devem ser enviados. A omissão de um campo significa que ele não deve ser modificado.*
+*Nota: Apenas os campos a serem alterados devem ser enviados. A omissão de um campo significa que ele não deve ser modificado.*<br>
+É muito importante que criem um sistema robusto que valide todas as possibilidades.
 
 #### Envio (Cliente → Servidor)
 
@@ -334,12 +337,12 @@ A seguir, a especificação detalhada para cada operação.
 
 ### 4.7. Criação de Transação (`transacao_criar`)
 
-OBS: Na operação 'transacao_criar', é enviada a quantidade especificada na propriedade 'valor' pelo usuário contido no token ao usuário correspondente ao 'cpf_destino'.
-Exemplo:
-Pedro fez login no sistema, e cria uma transação para enviar R$10,00 a João
-O "token" a ser armazenado será o token de Pedro
-O "valor" a ser armazenado será 1000
-O "cpf_destino" a ser armazenado será o de João
+OBS: Na operação 'transacao_criar', é enviada a quantidade especificada na propriedade 'valor' pelo usuário contido no token, enviando ao usuário correspondente no 'cpf_destino'.
+Exemplo:<br>
+- Pedro fez login no sistema, e cria uma transação para enviar R$10,00 a João<br>
+- O "token" enviado será o token de Pedro, que será seu identificador<br>
+- O "valor" a ser armazenado será R$10,00<br>
+- O "cpf_destino" a ser armazenado será o de João<br>
 
 #### Envio (Cliente → Servidor)
 
@@ -377,9 +380,13 @@ O "cpf_destino" a ser armazenado será o de João
 
 ### 4.8. Leitura de Transações (`transacao_ler`)
 
-*Nota: Esta operação utiliza **filtragem por datas** para lidar com grandes volumes de dados.*
-- Envia-se uma data inicial e uma data final. Assim, apenas as transações ocorridas no período determinado são devolvidas.
+*Nota: Esta operação utiliza **filtragem por datas** para lidar com grandes volumes de dados.*<br>
+- Envia-se uma data inicial e uma data final. Assim, apenas as transações ocorridas no período determinado são devolvidas.<br>
 - O token a ser enviado deve ser do usuário logado no sistema.
+
+O servidor deve ter como limite máximo de retorno 31 dias (31 dias foi escolhido pois consegue acolher todos os meses), exemplo:<br>
+O Usuário pediu as transações do dia 1 de janeiro a 1 de fevereiro, é esperado que o servidor retorne todas as transações entre esse tempo<br>
+O Usuário pediu as transações do dia 1 de janeiro a 1 de maio, o servidor deve retornar um erro.
 
 #### Envio (Cliente → Servidor)
 
@@ -431,9 +438,50 @@ O "cpf_destino" a ser armazenado será o de João
 
 ```
 
+### 4.9. Realizar depósito (`depositar`)
+Essa ação permite que o usuário deposite quantia X de dinheiro em sua conta,<br>
+O `valor_enviado` representa a quantidade que está sendo depositada.
+
+#### Envio (Cliente → Servidor)
+
+```
+{
+  "operacao": "depositar",
+  "token": "a1b2c3d4-e5f6-7890-g1h2-i3j4k5l6m7n8",
+  "valor_enviado": 123.12
+}
+
+```
+
+#### Recebimento (Servidor → Cliente) em caso de sucesso
+
+```
+{
+  "operacao": "depositar",
+  "status": true,
+  "info": "Deposito realizado com sucesso."
+}
+
+```
+
+#### Recebimento (Servidor → Cliente) em caso de falha
+
+```
+{
+  "operacao": "depositar",
+  "status": false,
+  "info": "Erro ao depositar."
+}
+
+```
+
 ## 5. Em caso de erro
 
-O servidor deverá retornar uma mensagem com `operacao`, `status` e `info`, mais nenhuma informação deve ser enviada adiante.
+### 5.1. Erros padrões
+O servidor deverá retornar uma mensagem com `operacao`, `status` e `info`, mais nenhuma informação deve ser enviada adiante.<br>
+As possíveis mensagens de erro (`info`) serão responsabilidade do servidor, o cliente apenas deve passar essa mensagem para a interface do usuário e tratar o erro conforme a `operacao`.
+
+O que isso significa? Quando o cliente receber uma operação com o `status` como `false` ele deve tratar o erro pela operação (Caso precise) e mostrar a `info` para interface do usuário caso o cliente deseje.
 
 ```
 {
@@ -444,6 +492,9 @@ O servidor deverá retornar uma mensagem com `operacao`, `status` e `info`, mais
 
 ```
 
+### 5.2. Erros de JSON
+Caso o servidor envie uma mensagem que não contenha `operacao`, `status` ou `info`, ou o cliente envie uma mensagem que não contenha `operacao`,<br>o servidor/cliente que recebe devem retornar `null` para encerrar a conexão.
+
 ## 6. Tipagem de Dados
 
 | **Campo(s)**           | **Tipo de Dado** | **Descrição**                                                                                                                                                                                   |
@@ -452,5 +503,43 @@ O servidor deverá retornar uma mensagem com `operacao`, `status` e `info`, mais
 | `valor_enviado`,`saldo`  | **`double`**   | Valores numéricos de ponto flutuante.*Nota: Para este projeto,`double`é aceitável. Em sistemas de produção, o ideal seria usar `long`para representar centavos e evitar erros de precisão.* |
 | `cpf`, `cpf_destino` | **`String: 000.000.000-00`**   | O Validador apenas valida se o CPF está na formatação, não se é válido (espaçamentos no começo e no final são desconsiderados). |
 | `nome`,`senha`  | **`String: Min 6 e Max 120 caracteres`**   | O Validador apenas valida o tamanho, ele desconsidera espaços no começo e no fim. |
-| `data_inicial`,`data_final`  | **`String: Min 20 e Max 20 caracteres`**   | O Validador apenas valida o tamanho, ele desconsidera espaços no começo e no fim. |
-| Todos os outros campos       | **`String: Min 3 e Max 200`**   | Valores de texto (espaçamentos no começo e no final são desconsiderados).                                                                                                                                                                                       |
+| `data_inicial`,`data_final`| **`String: yyyy-MM-dd'T'HH:mm:ss'Z'`** | Datas devem estar no formato ISO 8601 UTC. |
+| Todos os outros campos     | **`String: Min 3 e Max 200`** | Valores de texto (espaçamentos no começo e no final são desconsiderados).                   |
+
+## 7. Explicações adicionais e avisos
+
+### 7.1. Esperado de cada aluno.
+- É esperado que o servidor retorne os dados corretamente, porém o cliente sempre deve se previnir para caso o servidor retorne um `status` como `false`,<br>
+ou até mesmo não retorne nada, mesmo que seus dados enviados estejam corretos, prever erros ou falta de respostas é de inteira responsabilidade do aluno.
+
+- É esperado que o aluno tenha lido todo o documento, erros claramente contra o protocolo serão de inteira responsabilidade do aluno.
+
+- É esperado do aluno, que caso encontre uma vulnerabilidade ou ponto importante no protocolo, ele imediatamente avise no grupo de Whatsapp da turma ou em sala.
+
+### 7.2. Pontos subentendidos.
+Há algumas informações que estão subentendidas sobre o projeto, o protocolo não visa em conta as regras de negócio do sistema bancário,<br>
+que por sua vez estão disponíveis [clicando aqui](https://docs.google.com/document/d/1MRiMjnu9PdJSWPyAKl4zBdkZN0iFwNujDLjRW_oP-IA/edit?tab=t.0)
+
+Todas possiblidades de conversas entre o `cliente->servidor` e `servidor->cliente` estão listadas aqui, para que sua mensagem esteja correta ela deve seguir o molde fornecido a **risca**, do contrário, estará contra o protocolo e suas orientações.
+
+### 7.3. ISO 8601
+**Explicação:**<br>
+Apenas será necessário transformar em String, e ler a String com funções já nativas do Java (Date)
+
+`yyyy`: ano com 4 dígitos<br>
+`MM`: mês com 2 dígitos<br>
+`dd`: dia com 2 dígitos<br>
+`'T'`: separador entre data e hora<br>
+`HH`: hora (00-23)<br>
+`mm`: minutos<br>
+`ss`: segundos<br>
+`'Z'`: indica que o horário está em UTC (tempo universal coordenado)
+
+**Exemplo:**
+
+`{
+  "data_inicial": "2025-08-01T00:00:00Z",
+  "data_final": "2025-08-27T23:59:59Z"
+}`
+
+
