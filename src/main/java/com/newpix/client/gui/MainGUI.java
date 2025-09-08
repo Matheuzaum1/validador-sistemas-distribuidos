@@ -276,18 +276,32 @@ public class MainGUI extends JFrame {
     }
     
     private void carregarDadosUsuario() {
-        NewPixClient.UserDataResult result = client.lerUsuario(token);
+        String dadosJson = client.getDadosUsuario(token);
         
-        if (result.isSuccess()) {
-            nomeUsuario = result.getNome();
-            cpfUsuario = result.getCpf();
-            saldoUsuario = result.getSaldo();
-            
-            nomeLabel.setText("Nome: " + nomeUsuario);
-            cpfLabel.setText("CPF: " + cpfUsuario);
-            saldoLabel.setText("Saldo: " + currencyFormat.format(saldoUsuario));
+        if (dadosJson != null && !dadosJson.isEmpty()) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode dadosNode = mapper.readTree(dadosJson);
+                
+                if (dadosNode.has("success") && dadosNode.get("success").asBoolean()) {
+                    nomeUsuario = dadosNode.get("nome").asText();
+                    cpfUsuario = dadosNode.get("cpf").asText();
+                    saldoUsuario = dadosNode.get("saldo").asDouble();
+                    
+                    nomeLabel.setText("Nome: " + nomeUsuario);
+                    cpfLabel.setText("CPF: " + cpfUsuario);
+                    saldoLabel.setText("Saldo: " + currencyFormat.format(saldoUsuario));
+                } else {
+                    String errorMsg = dadosNode.has("message") ? dadosNode.get("message").asText() : "Erro desconhecido";
+                    JOptionPane.showMessageDialog(this, "Erro ao carregar dados: " + errorMsg,
+                                                "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Erro ao processar dados do usuário: " + e.getMessage(),
+                                            "Erro", JOptionPane.ERROR_MESSAGE);
+            }
         } else {
-            JOptionPane.showMessageDialog(this, "Erro ao carregar dados: " + result.getMessage(),
+            JOptionPane.showMessageDialog(this, "Erro ao carregar dados do usuário",
                                         "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -311,9 +325,9 @@ public class MainGUI extends JFrame {
                 return;
             }
             
-            NewPixClient.OperationResult result = client.criarTransacao(token, valor, cpfDestino);
+            boolean success = client.criarPix(token, valor, cpfDestino);
             
-            if (result.isSuccess()) {
+            if (success) {
                 JOptionPane.showMessageDialog(this, "PIX enviado com sucesso!",
                                             "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                 valorPixField.setText("");
@@ -321,7 +335,7 @@ public class MainGUI extends JFrame {
                 carregarDadosUsuario(); // Atualizar saldo
                 carregarExtrato(); // Atualizar extrato
             } else {
-                JOptionPane.showMessageDialog(this, result.getMessage(),
+                JOptionPane.showMessageDialog(this, "Erro ao enviar PIX",
                                             "Erro", JOptionPane.ERROR_MESSAGE);
             }
             
@@ -341,44 +355,30 @@ public class MainGUI extends JFrame {
             return;
         }
         
-        NewPixClient.OperationResult result = client.atualizarUsuario(token, 
-                                                                     novoNome.isEmpty() ? null : novoNome,
-                                                                     novaSenha.isEmpty() ? null : novaSenha);
-        
-        if (result.isSuccess()) {
-            JOptionPane.showMessageDialog(this, "Dados atualizados com sucesso!",
-                                        "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-            novoNomeField.setText("");
-            novaSenhaField.setText("");
-            carregarDadosUsuario(); // Atualizar dados exibidos
-        } else {
-            JOptionPane.showMessageDialog(this, result.getMessage(),
-                                        "Erro", JOptionPane.ERROR_MESSAGE);
-        }
+        // Funcionalidade de atualização não disponível na versão simplificada
+        JOptionPane.showMessageDialog(this, "Funcionalidade em desenvolvimento",
+                                    "Aviso", JOptionPane.INFORMATION_MESSAGE);
     }
     
     private void carregarExtrato() {
-        // Buscar transações dos últimos 30 dias
-        LocalDateTime dataFinal = LocalDateTime.now();
-        LocalDateTime dataInicial = dataFinal.minusDays(30);
+        String historicoJson = client.getHistoricoTransacoes(token);
         
-        String dataInicialStr = dataInicial.format(DateTimeFormatter.ISO_DATE_TIME);
-        String dataFinalStr = dataFinal.format(DateTimeFormatter.ISO_DATE_TIME);
-        
-        NewPixClient.TransactionResult result = client.lerTransacoes(token, dataInicialStr, dataFinalStr);
-        
-        if (result.isSuccess() && result.getTransacoes() != null) {
+        if (historicoJson != null && !historicoJson.isEmpty()) {
             try {
                 ObjectMapper mapper = new ObjectMapper();
-                JsonNode transacoes = mapper.readTree(result.getTransacoes());
+                JsonNode responseNode = mapper.readTree(historicoJson);
                 
                 // Limpar tabela
                 tableModel.setRowCount(0);
                 
-                // Adicionar transações à tabela
-                for (JsonNode transacao : transacoes) {
-                    String data = transacao.get("criado_em").asText();
-                    double valor = transacao.get("valor_enviado").asDouble();
+                if (responseNode.has("success") && responseNode.get("success").asBoolean() 
+                    && responseNode.has("transacoes")) {
+                    JsonNode transacoes = responseNode.get("transacoes");
+                    
+                    // Adicionar transações à tabela
+                    for (JsonNode transacao : transacoes) {
+                        String data = transacao.get("criado_em").asText();
+                        double valor = transacao.get("valor_enviado").asDouble();
                     
                     JsonNode enviador = transacao.get("usuario_enviador");
                     JsonNode recebedor = transacao.get("usuario_recebedor");
@@ -409,6 +409,11 @@ public class MainGUI extends JFrame {
                         origem_destino
                     });
                 }
+                } else {
+                    // Nenhuma transação encontrada ou erro na resposta
+                    JOptionPane.showMessageDialog(this, "Nenhuma transação encontrada",
+                                                "Aviso", JOptionPane.INFORMATION_MESSAGE);
+                }
                 
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Erro ao processar extrato: " + e.getMessage(),
@@ -416,6 +421,8 @@ public class MainGUI extends JFrame {
             }
         } else {
             tableModel.setRowCount(0);
+            JOptionPane.showMessageDialog(this, "Erro ao carregar histórico",
+                                        "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -424,7 +431,6 @@ public class MainGUI extends JFrame {
                                                   "Confirmar Logout", JOptionPane.YES_NO_OPTION);
         
         if (option == JOptionPane.YES_OPTION) {
-            client.logout(token);
             client.disconnect();
             
             // Voltar para tela de login
