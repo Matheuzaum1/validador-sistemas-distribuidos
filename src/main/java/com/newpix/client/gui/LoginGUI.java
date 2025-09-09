@@ -3,6 +3,7 @@ package com.newpix.client.gui;
 import com.newpix.client.NewPixClient;
 import com.newpix.util.ErrorHandler;
 import com.newpix.util.ConnectionConfig;
+import com.newpix.util.CpfUtil;
 
 import javax.swing.*;
 import java.awt.*;
@@ -281,6 +282,10 @@ public class LoginGUI extends JFrame {
             return;
         }
         
+        // Normalizar CPF se tiver formato válido
+        final String cpfParaLogin = CpfUtil.validarFormatoCpf(cpf) ? 
+            CpfUtil.normalizarCpf(cpf) : cpf;
+        
         // Executar login em thread separada
         loginButton.setEnabled(false);
         loginButton.setText("Logando...");
@@ -292,7 +297,7 @@ public class LoginGUI extends JFrame {
                     throw new RuntimeException("Cliente não está conectado");
                 }
                 
-                return client.loginSimple(cpf, senha);
+                return client.loginSimple(cpfParaLogin, senha);
                 
             }, this, "Realizar login");
             
@@ -323,6 +328,16 @@ public class LoginGUI extends JFrame {
             return;
         }
         
+        // Normalizar CPF para formato do sistema (apenas números)
+        String cpfNormalizado = CpfUtil.normalizarCpf(cpf);
+        if (cpfNormalizado == null) {
+            JOptionPane.showMessageDialog(this,
+                "Erro na normalização do CPF. Tente novamente.",
+                "Erro de CPF",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
         // Executar cadastro em thread separada
         cadastroButton.setEnabled(false);
         cadastroButton.setText("Cadastrando...");
@@ -334,7 +349,7 @@ public class LoginGUI extends JFrame {
                     throw new RuntimeException("Cliente não está conectado");
                 }
                 
-                return client.cadastroSimple(cpf, nome, senha);
+                return client.cadastroSimple(cpfNormalizado, nome, senha);
                 
             }, this, "Realizar cadastro");
             
@@ -367,9 +382,13 @@ public class LoginGUI extends JFrame {
             return false;
         }
         
-        if (!cpf.matches("\\\\d{3}\\\\.\\\\d{3}\\\\.\\\\d{3}-\\\\d{2}")) {
+        if (!CpfUtil.validarFormatoCpf(cpf)) {
             JOptionPane.showMessageDialog(this,
-                "CPF deve estar no formato 000.000.000-00",
+                "CPF inválido!\n\n" +
+                "Formatos aceitos:\n" +
+                "• 000.000.000-00 (com pontos e hífen)\n" +
+                "• 00000000000 (apenas números)\n\n" +
+                "Exemplo: " + CpfUtil.formatarCpf("10018169945"),
                 "CPF Inválido",
                 JOptionPane.WARNING_MESSAGE);
             cpfField.requestFocus();

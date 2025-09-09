@@ -3,6 +3,7 @@ package com.newpix.client.gui;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.newpix.client.NewPixClient;
+import com.newpix.util.CpfUtil;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -170,7 +171,9 @@ public class MainGUI extends JFrame {
             "1. Digite o valor a ser enviado\n" +
             "2. Informe o CPF do destinatário\n" +
             "3. Clique em 'Enviar PIX'\n\n" +
-            "Formato do CPF: 000.000.000-00"
+            "Formatos de CPF aceitos:\n" +
+            "• 000.000.000-00 (com pontos e hífen)\n" +
+            "• 00000000000 (apenas números)"
         );
         instructions.setEditable(false);
         instructions.setBackground(panel.getBackground());
@@ -317,6 +320,22 @@ public class MainGUI extends JFrame {
                 return;
             }
             
+            // Validar CPF de destino
+            if (!CpfUtil.validarFormatoCpf(cpfDestino)) {
+                JOptionPane.showMessageDialog(this, 
+                    "CPF de destino inválido!\n\n" +
+                    "Formatos aceitos:\n" +
+                    "• 000.000.000-00 (com pontos e hífen)\n" +
+                    "• 00000000000 (apenas números)\n\n" +
+                    "Exemplo: " + CpfUtil.formatarCpf("12345678901"),
+                    "CPF Inválido", JOptionPane.ERROR_MESSAGE);
+                cpfDestinoField.requestFocus();
+                return;
+            }
+            
+            // Normalizar CPF para envio
+            String cpfDestinoNormalizado = CpfUtil.normalizarCpf(cpfDestino);
+            
             double valor = Double.parseDouble(valorStr);
             
             if (valor <= 0) {
@@ -325,7 +344,7 @@ public class MainGUI extends JFrame {
                 return;
             }
             
-            boolean success = client.criarPix(token, valor, cpfDestino);
+            boolean success = client.criarPix(token, valor, cpfDestinoNormalizado);
             
             if (success) {
                 JOptionPane.showMessageDialog(this, "PIX enviado com sucesso!",

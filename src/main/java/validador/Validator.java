@@ -2,6 +2,7 @@ package validador;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.newpix.util.CpfUtil;
 
 public class Validator {
 
@@ -229,9 +230,11 @@ public class Validator {
             throw new IllegalArgumentException("O campo '" + fieldName + "' deve ser do tipo String.");
         }
         String cpf = field.asText();
-        String cpfRegex = "\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}";
-        if (!cpf.matches(cpfRegex)) {
-            throw new IllegalArgumentException("O campo '" + fieldName + "' deve estar no formato '000.000.000-00'.");
+        
+        // Usar validação inteligente que aceita ambos os formatos
+        if (!CpfUtil.validarFormatoCpf(cpf)) {
+            throw new IllegalArgumentException("O campo '" + fieldName + "' deve conter um CPF válido. " +
+                "Formatos aceitos: '000.000.000-00' ou '00000000000'.");
         }
     }
     
