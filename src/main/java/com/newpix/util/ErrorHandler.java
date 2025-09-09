@@ -1,4 +1,4 @@
-﻿package com.newpix.util;
+package com.newpix.util;
 
 import javax.swing.*;
 import java.awt.*;

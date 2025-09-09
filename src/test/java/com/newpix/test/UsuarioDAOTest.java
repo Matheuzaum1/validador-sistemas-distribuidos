@@ -1,4 +1,4 @@
-﻿package com.newpix.test;
+package com.newpix.test;
 
 import com.newpix.dao.DatabaseManager;
 import com.newpix.dao.UsuarioDAO;

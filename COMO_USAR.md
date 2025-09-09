@@ -1,6 +1,26 @@
 ﻿# 🚀 Como Usar o Sistema NewPix
 
-## 🖥️ Scripts por Plataforma
+## � PRIMEIRO USO - Setup de Dependências
+
+**⚠️ EXECUTE ISTO PRIMEIRO em uma máquina nova:**
+
+### Windows PowerShell:
+```powershell
+.\scripts\setup-inicial.ps1
+```
+
+### Windows Batch:
+```batch
+scripts\setup-inicial.bat
+```
+
+Este script irá:
+- ✅ Verificar Java 17+ e Maven
+- ✅ Baixar todas as dependências do Maven
+- ✅ Compilar o projeto pela primeira vez
+- ✅ Garantir que tudo está funcionando
+
+## �🖥️ Scripts por Plataforma
 
 ### 🪟 Windows
 ```batch

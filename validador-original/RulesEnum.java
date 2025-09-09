@@ -1,4 +1,4 @@
-﻿
+
 import java.util.Objects;
 
 public enum RulesEnum {

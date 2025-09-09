@@ -1,4 +1,4 @@
-﻿package com.newpix.model;
+package com.newpix.model;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

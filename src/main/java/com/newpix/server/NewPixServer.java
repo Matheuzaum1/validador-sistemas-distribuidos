@@ -1,4 +1,4 @@
-﻿package com.newpix.server;
+package com.newpix.server;
 
 import com.newpix.dao.DatabaseManager;
 import com.newpix.util.ErrorHandler;

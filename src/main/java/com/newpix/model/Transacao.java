@@ -1,4 +1,4 @@
-﻿package com.newpix.model;
+package com.newpix.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;

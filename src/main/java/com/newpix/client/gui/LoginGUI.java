@@ -1,4 +1,4 @@
-﻿package com.newpix.client.gui;
+package com.newpix.client.gui;
 
 import com.newpix.client.NewPixClient;
 import com.newpix.util.ErrorHandler;

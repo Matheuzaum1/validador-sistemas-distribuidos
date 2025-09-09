@@ -1,4 +1,4 @@
-﻿package com.newpix.client.gui;
+package com.newpix.client.gui;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

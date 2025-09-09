@@ -1,4 +1,4 @@
-﻿package com.newpix.dao;
+package com.newpix.dao;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

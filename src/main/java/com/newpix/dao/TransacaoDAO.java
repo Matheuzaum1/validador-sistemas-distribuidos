@@ -1,4 +1,4 @@
-﻿package com.newpix.dao;
+package com.newpix.dao;
 
 import com.newpix.model.Transacao;
 import com.newpix.model.Usuario;

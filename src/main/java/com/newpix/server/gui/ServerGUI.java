@@ -1,4 +1,4 @@
-﻿package com.newpix.server.gui;
+package com.newpix.server.gui;
 
 import com.newpix.dao.DatabaseManager;
 import com.newpix.server.NewPixServer;
