@@ -1,0 +1,5 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Tue Sep 09 08:05:46 BRT 2025
+oro-2.0.8.jar>central=
+oro-2.0.8.jar>central-plugins=
+oro-2.0.8.pom>central-plugins=

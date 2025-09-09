@@ -1,0 +1,5 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Tue Sep 09 08:05:46 BRT 2025
+plexus-archiver-4.7.1.jar>central=
+plexus-archiver-4.7.1.jar>central-plugins=
+plexus-archiver-4.7.1.pom>central-plugins=

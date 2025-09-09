@@ -1,4 +1,5 @@
 #NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
-#Tue Sep 09 08:01:07 BRT 2025
+#Tue Sep 09 08:05:53 BRT 2025
+plexus-component-annotations-1.5.5.jar>central=
 plexus-component-annotations-1.5.5.jar>central-plugins=
 plexus-component-annotations-1.5.5.pom>central-plugins=
