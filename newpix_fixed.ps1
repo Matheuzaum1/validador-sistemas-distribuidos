@@ -5,7 +5,7 @@
 
 param(
     [Parameter(Position=0)]
-    [ValidateSet("menu", "server-gui", "client-gui", "both-gui", "server", "server-cli", "client", "client-cli", "login", "signup", "stop", "status", "build", "clean", "install", "test", "help")]
+    [ValidateSet("menu", "server", "login", "signup", "client", "stop", "status", "build", "clean", "install", "test", "help")]
     [string]$Action = "menu",
     
     [Parameter(Position=1)]
@@ -214,89 +214,6 @@ function Start-Server {
     }
 }
 
-# Funcao para iniciar GUI do servidor
-function Start-ServerGUI {
-    Write-Host "Iniciando Interface Grafica do Servidor..." -ForegroundColor Yellow
-    
-    Test-Build
-    $classpath = Get-ClassPath
-    
-    Write-Host "DEBUG: Classpath = $classpath" -ForegroundColor Gray
-    Write-Host "DEBUG: Executando: java -cp `"$classpath`" com.newpix.server.gui.ServerGUI" -ForegroundColor Gray
-    
-    try {
-        Write-Host "DEBUG: Tentando execucao com captura de erro..." -ForegroundColor Gray
-        $errorOutput = & java "-Djava.awt.headless=false" -cp $classpath com.newpix.server.gui.ServerGUI 2>&1
-        
-        if ($errorOutput) {
-            Write-Host "DEBUG: Saida/Erro capturado:" -ForegroundColor Red
-            Write-Host $errorOutput -ForegroundColor Red
-        }
-        
-        # Tentar com Start-Process se execucao direta nao mostrou erro
-        Write-Host "DEBUG: Tentando com Start-Process..." -ForegroundColor Gray
-        $process = Start-Process java -ArgumentList "-Djava.awt.headless=false", "-cp", $classpath, "com.newpix.server.gui.ServerGUI" -WindowStyle Normal -PassThru
-        Start-Sleep 2
-        
-        if (Get-Process -Id $process.Id -ErrorAction SilentlyContinue) {
-            Write-Host "Interface do Servidor iniciada! PID: $($process.Id)" -ForegroundColor Green
-        } else {
-            Write-Host "Processo terminou inesperadamente. Possivel erro de GUI." -ForegroundColor Red
-        }
-    } catch {
-        Write-Host "Erro ao iniciar GUI do servidor: $($_.Exception.Message)" -ForegroundColor Red
-    }
-}
-
-# Funcao para iniciar GUI do cliente
-function Start-ClientGUI {
-    Write-Host "Iniciando Interface Grafica do Cliente..." -ForegroundColor Yellow
-    
-    Test-Build
-    $classpath = Get-ClassPath
-    
-    Write-Host "DEBUG: Tentando LoginGUI em vez de MainGUI (que nao tem main)..." -ForegroundColor Gray
-    
-    try {
-        Write-Host "DEBUG: Tentando execucao com captura de erro..." -ForegroundColor Gray
-        $errorOutput = & java "-Djava.awt.headless=false" -cp $classpath com.newpix.client.gui.LoginGUI 2>&1
-        
-        if ($errorOutput) {
-            Write-Host "DEBUG: Saida/Erro capturado:" -ForegroundColor Red
-            Write-Host $errorOutput -ForegroundColor Red
-        }
-        
-        # Tentar com Start-Process se execucao direta nao mostrou erro
-        Write-Host "DEBUG: Tentando com Start-Process..." -ForegroundColor Gray
-        $process = Start-Process java -ArgumentList "-Djava.awt.headless=false", "-cp", $classpath, "com.newpix.client.gui.LoginGUI" -WindowStyle Normal -PassThru
-        Start-Sleep 2
-        
-        if (Get-Process -Id $process.Id -ErrorAction SilentlyContinue) {
-            Write-Host "Interface do Cliente iniciada! PID: $($process.Id)" -ForegroundColor Green
-        } else {
-            Write-Host "Processo terminou inesperadamente. Possivel erro de GUI." -ForegroundColor Red
-        }
-    } catch {
-        Write-Host "Erro ao iniciar GUI do cliente: $($_.Exception.Message)" -ForegroundColor Red
-    }
-}
-
-# Funcao para iniciar cliente CLI (debug)
-function Start-ClientCLI {
-    Write-Host "Iniciando Cliente CLI (modo debug)..." -ForegroundColor Yellow
-    
-    Test-Build
-    $classpath = Get-ClassPath
-    
-    Write-Host "   Modo: CLI Debug (Ctrl+C para parar)" -ForegroundColor Gray
-    Write-Host ""
-    try {
-        & java -cp $classpath com.newpix.client.NewPixClient
-    } catch {
-        Write-Host "Erro ao executar cliente: $($_.Exception.Message)" -ForegroundColor Red
-    }
-}
-
 # Funcao para iniciar janela de login
 function Start-LoginWindow {
     Write-Host "Iniciando Janela de Login..." -ForegroundColor Yellow
@@ -341,68 +258,6 @@ function Invoke-Clean {
     }
 }
 
-# Funcao para iniciar ambos GUIs (Servidor e Cliente)
-function Start-BothGUI {
-    Write-Host "==============================================================================" -ForegroundColor Cyan
-    Write-Host "                        INICIANDO SISTEMA COMPLETO                           " -ForegroundColor Cyan
-    Write-Host "==============================================================================" -ForegroundColor Cyan
-    Write-Host ""
-    
-    Test-Build
-    $classpath = Get-ClassPath
-    
-    # Iniciar GUI do Servidor
-    Write-Host "1/2 - Iniciando GUI do Servidor..." -ForegroundColor Yellow
-    try {
-        $serverProcess = Start-Process java -ArgumentList "-Djava.awt.headless=false", "-cp", $classpath, "com.newpix.server.gui.ServerGUI" -WindowStyle Normal -PassThru
-        Write-Host "    -> Servidor GUI PID: $($serverProcess.Id)" -ForegroundColor Green
-    } catch {
-        Write-Host "    -> ERRO ao iniciar Servidor GUI: $($_.Exception.Message)" -ForegroundColor Red
-        return
-    }
-    
-    # Aguardar inicialização do servidor
-    Write-Host "    Aguardando inicialização do servidor..." -ForegroundColor Gray
-    Start-Sleep 3
-    
-    # Iniciar GUI do Cliente  
-    Write-Host "2/2 - Iniciando GUI do Cliente..." -ForegroundColor Yellow
-    try {
-        $clientProcess = Start-Process java -ArgumentList "-Djava.awt.headless=false", "-cp", $classpath, "com.newpix.client.gui.LoginGUI" -WindowStyle Normal -PassThru  
-        Write-Host "    -> Cliente GUI PID: $($clientProcess.Id)" -ForegroundColor Green
-    } catch {
-        Write-Host "    -> ERRO ao iniciar Cliente GUI: $($_.Exception.Message)" -ForegroundColor Red
-    }
-    
-    # Aguardar inicialização do cliente
-    Start-Sleep 2
-    
-    Write-Host ""
-    Write-Host "==============================================================================" -ForegroundColor Green
-    Write-Host "                           SISTEMA INICIADO!                                 " -ForegroundColor Green
-    Write-Host "==============================================================================" -ForegroundColor Green
-    Write-Host ""
-    
-    # Verificar processos ativos
-    $javaProcs = Get-Process java -ErrorAction SilentlyContinue
-    if ($javaProcs) {
-        Write-Host "Processos Java em execução:" -ForegroundColor Yellow
-        foreach ($proc in $javaProcs) {
-            Write-Host "  PID: $($proc.Id) | Memoria: $([math]::Round($proc.WorkingSet64/1MB, 2)) MB" -ForegroundColor White
-        }
-        Write-Host ""
-        Write-Host "✓ Ambas as interfaces gráficas foram iniciadas!" -ForegroundColor Green
-        Write-Host "  • ServerGUI: Interface de gerenciamento do servidor" -ForegroundColor White
-        Write-Host "  • LoginGUI:  Interface de login do cliente" -ForegroundColor White
-    } else {
-        Write-Host "⚠ AVISO: Nenhum processo Java encontrado." -ForegroundColor Yellow
-        Write-Host "   As janelas podem ter fechado rapidamente." -ForegroundColor Gray
-    }
-    
-    Write-Host ""
-    Write-Host "Para parar o sistema: .\newpix.ps1 stop" -ForegroundColor Cyan
-}
-
 # Funcao para exibir menu
 function Show-Menu {
     Show-Header
@@ -412,50 +267,40 @@ function Show-Menu {
     Write-Host "MENU PRINCIPAL" -ForegroundColor Cyan
     Write-Host "==============" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "INTERFACES GRAFICAS (Recomendado):" -ForegroundColor Green
-    Write-Host "   1. Servidor + Cliente          (both-gui)"
-    Write-Host "   2. GUI do Servidor             (server-gui)"
-    Write-Host "   3. GUI do Cliente              (client-gui)"
-    Write-Host ""
     Write-Host "GERENCIAMENTO:" -ForegroundColor Yellow
-    Write-Host "   4. Status do Sistema           (status)"
-    Write-Host "   5. Parar Todos Servicos        (stop)"
+    Write-Host "   1. Iniciar Servidor            (server)"
+    Write-Host "   2. Parar Todos Servicos        (stop)"
+    Write-Host "   3. Status do Sistema           (status)"
     Write-Host ""
-    Write-Host "DEBUG/CLI (Desenvolvedores):" -ForegroundColor Cyan
-    Write-Host "   6. Servidor CLI                (server-cli)"
-    Write-Host "   7. Cliente CLI                 (client-cli)"
-    Write-Host "   8. Login CLI                   (login)"
-    Write-Host "   9. Cadastro CLI                (signup)"
+    Write-Host "INTERFACE:" -ForegroundColor Yellow
+    Write-Host "   4. Janela de Login             (login)"
+    Write-Host "   5. Janela de Cadastro          (signup)"
     Write-Host ""
-    Write-Host "DESENVOLVIMENTO:" -ForegroundColor Magenta
-    Write-Host "  10. Compilar Projeto            (build)"
-    Write-Host "  11. Instalar Dependencias       (install)"
-    Write-Host "  12. Executar Testes             (test)"
-    Write-Host "  13. Limpar Projeto              (clean)"
+    Write-Host "DESENVOLVIMENTO:" -ForegroundColor Yellow
+    Write-Host "   6. Compilar Projeto            (build)"
+    Write-Host "   7. Instalar Dependencias       (install)"
+    Write-Host "   8. Executar Testes             (test)"
+    Write-Host "   9. Limpar Projeto              (clean)"
     Write-Host ""
     Write-Host "   0. Sair                        (Ctrl+C)"
     Write-Host ""
     
     do {
-        $choice = Read-Host "Digite sua escolha (1-13, 0 para sair)"
+        $choice = Read-Host "Digite sua escolha (1-9, 0 para sair)"
         
         switch ($choice) {
-            "1"  { Start-BothGUI }
-            "2"  { Start-ServerGUI }
-            "3"  { Start-ClientGUI }
-            "4"  { Get-Status }
-            "5"  { Stop-Services }
-            "6"  { Start-Server -ServerPort $Port }
-            "7"  { Start-ClientCLI }
-            "8"  { Start-LoginWindow }
-            "9"  { Start-SignupWindow }
-            "10" { Invoke-Build }
-            "11" { Install-Dependencies }
-            "12" { Invoke-Tests }
-            "13" { Invoke-Clean }
-            "0"  { Write-Host "Ate logo!" -ForegroundColor Green; exit 0 }
+            "1" { Start-Server -ServerPort $Port }
+            "2" { Stop-Services }
+            "3" { Get-Status }
+            "4" { Start-LoginWindow }
+            "5" { Start-SignupWindow }
+            "6" { Invoke-Build }
+            "7" { Install-Dependencies }
+            "8" { Invoke-Tests }
+            "9" { Invoke-Clean }
+            "0" { Write-Host "Ate logo!" -ForegroundColor Green; exit 0 }
             default { 
-                Write-Host "Opcao invalida! Digite um numero de 1-13 ou 0." -ForegroundColor Red 
+                Write-Host "Opcao invalida! Digite um numero de 1-9 ou 0." -ForegroundColor Red 
             }
         }
         
@@ -478,29 +323,17 @@ function Show-Help {
     Write-Host "   .\newpix.ps1 [ACAO] [OPCOES]" -ForegroundColor White
     Write-Host ""
     Write-Host "ACOES DISPONIVEIS:" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "INTERFACES GRAFICAS:" -ForegroundColor Green
-    Write-Host "   both-gui   - Inicia servidor e cliente juntos (recomendado)"
-    Write-Host "   server-gui - Abre interface grafica do servidor"
-    Write-Host "   client-gui - Abre interface grafica do cliente"
-    Write-Host ""
-    Write-Host "GERENCIAMENTO:" -ForegroundColor Yellow
-    Write-Host "   menu       - Exibe menu interativo (padrao)"
-    Write-Host "   status     - Mostra status do sistema"
-    Write-Host "   stop       - Para todos os servicos"
-    Write-Host ""
-    Write-Host "DEBUG/CLI:" -ForegroundColor Cyan
-    Write-Host "   server-cli - Inicia servidor via linha de comando"
-    Write-Host "   client-cli - Inicia cliente via linha de comando"
-    Write-Host "   login      - Abre janela de login"
-    Write-Host "   signup     - Abre janela de cadastro"
-    Write-Host ""
-    Write-Host "DESENVOLVIMENTO:" -ForegroundColor Magenta
-    Write-Host "   build      - Compila o projeto"
-    Write-Host "   install    - Instala dependencias"
-    Write-Host "   test       - Executa testes"
-    Write-Host "   clean      - Limpa o projeto"
-    Write-Host "   help       - Exibe esta ajuda"
+    Write-Host "   menu     - Exibe menu interativo (padrao)"
+    Write-Host "   server   - Inicia o servidor"
+    Write-Host "   login    - Abre janela de login"
+    Write-Host "   signup   - Abre janela de cadastro"  
+    Write-Host "   stop     - Para todos os servicos"
+    Write-Host "   status   - Mostra status do sistema"
+    Write-Host "   build    - Compila o projeto"
+    Write-Host "   install  - Instala dependencias"
+    Write-Host "   test     - Executa testes"
+    Write-Host "   clean    - Limpa o projeto"
+    Write-Host "   help     - Exibe esta ajuda"
     Write-Host ""
     Write-Host "PARAMETROS:" -ForegroundColor Yellow
     Write-Host "   -Port    - Porta do servidor (padrao: 8080)"
@@ -509,12 +342,11 @@ function Show-Help {
     Write-Host ""
     Write-Host "EXEMPLOS:" -ForegroundColor Yellow
     Write-Host "   .\newpix.ps1                    # Menu interativo"
-    Write-Host "   .\newpix.ps1 both-gui           # Sistema completo (recomendado)"
-    Write-Host "   .\newpix.ps1 server-gui         # Apenas GUI do Servidor"
-    Write-Host "   .\newpix.ps1 client-gui         # Apenas GUI do Cliente"
-    Write-Host "   .\newpix.ps1 server-cli -Port 9090  # Servidor CLI na porta 9090"
-    Write-Host "   .\newpix.ps1 client-cli         # Cliente CLI (debug)"
-    Write-Host "   .\newpix.ps1 status             # Ver status do sistema"
+    Write-Host "   .\newpix.ps1 server             # Iniciar servidor"
+    Write-Host "   .\newpix.ps1 server -Port 9090  # Servidor na porta 9090"
+    Write-Host "   .\newpix.ps1 server -Background # Servidor em background"
+    Write-Host "   .\newpix.ps1 login              # Abrir tela de login"
+    Write-Host "   .\newpix.ps1 status             # Ver status"
     Write-Host ""
 }
 
@@ -524,22 +356,16 @@ function Show-Help {
 
 # Executar acao baseada no parametro
 switch ($Action.ToLower()) {
-    "menu"       { Show-Menu }
-    "both-gui"   { Start-BothGUI }
-    "server-gui" { Start-ServerGUI }
-    "client-gui" { Start-ClientGUI }
-    "server"     { Start-Server -ServerPort $Port }
-    "server-cli" { Start-Server -ServerPort $Port }
-    "client"     { Start-ClientCLI }
-    "client-cli" { Start-ClientCLI }
-    "login"      { Start-LoginWindow }
-    "signup"     { Start-SignupWindow }
-    "stop"       { Stop-Services }
-    "status"     { Get-Status }
-    "build"      { Invoke-Build }
-    "install"    { Install-Dependencies }
-    "test"       { Invoke-Tests }
-    "clean"      { Invoke-Clean }
-    "help"       { Show-Help }
-    default      { Show-Menu }
+    "menu"    { Show-Menu }
+    "server"  { Start-Server -ServerPort $Port }
+    "login"   { Start-LoginWindow }
+    "signup"  { Start-SignupWindow }
+    "stop"    { Stop-Services }
+    "status"  { Get-Status }
+    "build"   { Invoke-Build }
+    "install" { Install-Dependencies }
+    "test"    { Invoke-Tests }
+    "clean"   { Invoke-Clean }
+    "help"    { Show-Help }
+    default   { Show-Menu }
 }

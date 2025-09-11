@@ -17,7 +17,6 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.release>17</maven.compiler.release>
         <!-- Configurações para melhor compatibilidade -->
         <jackson.version>2.19.2</jackson.version>
         <sqlite.version>3.43.0.0</sqlite.version>
