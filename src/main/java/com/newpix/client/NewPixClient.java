@@ -3,6 +3,7 @@ package com.newpix.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.newpix.util.ErrorHandler;
 import com.newpix.util.ConnectionConfig;
+import com.newpix.util.CLILogger;
 import validador.Validator;
 
 import java.io.*;
@@ -64,7 +65,7 @@ public class NewPixClient {
                 
                 connected = true;
                 
-                System.out.println("Conectado com sucesso ao servidor " + serverHost + ":" + serverPort);
+                CLILogger.connection(serverHost, serverPort, true);
                 return true;
                 
             }, null, "Conectar ao servidor");
@@ -238,6 +239,45 @@ public class NewPixClient {
             return false;
         }
     }
+
+    /**
+     * Método de login que retorna o token do usuário.
+     */
+    public String loginComToken(String cpf, String senha) {
+        try {
+            String request = String.format(
+                "{\"operacao\":\"usuario_login\",\"cpf\":\"%s\",\"senha\":\"%s\"}", 
+                cpf, senha
+            );
+            
+            String response = sendMessage(request);
+            
+            // Parse do JSON para extrair o token
+            ObjectMapper mapper = new ObjectMapper();
+            var jsonNode = mapper.readTree(response);
+            
+            if (jsonNode.has("status") && jsonNode.get("status").asBoolean()) {
+                // Login bem-sucedido, extrair token
+                CLILogger.login(cpf, true);
+                
+                if (jsonNode.has("token")) {
+                    return jsonNode.get("token").asText();
+                } else if (jsonNode.has("data") && jsonNode.get("data").has("token")) {
+                    return jsonNode.get("data").get("token").asText();
+                } else {
+                    // Se não tem token explícito, usar o CPF como fallback temporário
+                    return cpf;
+                }
+            }
+            
+            CLILogger.login(cpf, false);
+            return null; // Login falhou
+            
+        } catch (Exception e) {
+            ErrorHandler.handleUnexpectedError(e, null, "Login com token");
+            return null;
+        }
+    }
     
     /**
      * Método simplificado para cadastro (compatibilidade com GUI).
@@ -287,9 +327,15 @@ public class NewPixClient {
             );
             
             String response = sendMessage(request);
-            return response.contains("\"status\":true");
+            boolean success = response.contains("\"status\":true");
+            
+            // Log da transação PIX
+            CLILogger.pix(token, cpfDestino, valor, success);
+            
+            return success;
             
         } catch (Exception e) {
+            CLILogger.pix(token, cpfDestino, valor, false);
             ErrorHandler.handleUnexpectedError(e, null, "Criar PIX");
             return false;
         }
@@ -310,6 +356,64 @@ public class NewPixClient {
         } catch (Exception e) {
             ErrorHandler.handleUnexpectedError(e, null, "Obter histórico");
             return "{\"status\":false,\"info\":\"Erro na comunicação\"}";
+        }
+    }
+
+    /**
+     * Método para realizar depósito na conta do usuário.
+     */
+    public boolean realizarDeposito(String token, double valor) {
+        try {
+            String request = String.format(
+                "{\"operacao\":\"usuario_depositar\",\"token\":\"%s\",\"valor\":%.2f}", 
+                token, valor
+            );
+            
+            String response = sendMessage(request);
+            return response.contains("\"status\":true");
+            
+        } catch (Exception e) {
+            ErrorHandler.handleUnexpectedError(e, null, "Realizar depósito");
+            return false;
+        }
+    }
+    
+    /**
+     * Método para realizar depósito com retorno da mensagem completa.
+     */
+    public String realizarDepositoComMensagem(String token, double valor) {
+        try {
+            String request = String.format(
+                "{\"operacao\":\"usuario_depositar\",\"token\":\"%s\",\"valor\":%.2f}", 
+                token, valor
+            );
+            
+            String response = sendMessage(request);
+            
+            // Log do depósito
+            boolean success = response.contains("\"status\":true");
+            CLILogger.deposit(token, valor, success);
+            
+            // Extrair mensagem da resposta JSON
+            if (response.contains("\"mensagem\":")) {
+                int start = response.indexOf("\"mensagem\":\"") + 12;
+                int end = response.indexOf("\"", start);
+                if (end > start) {
+                    return response.substring(start, end);
+                }
+            }
+            
+            // Se não conseguir extrair mensagem, retornar status
+            if (response.contains("\"status\":true")) {
+                return "Depósito realizado com sucesso";
+            } else {
+                return "Erro ao realizar depósito";
+            }
+            
+        } catch (Exception e) {
+            CLILogger.deposit(token, valor, false);
+            ErrorHandler.handleUnexpectedError(e, null, "Realizar depósito");
+            return "Erro de conexão: " + e.getMessage();
         }
     }
 }

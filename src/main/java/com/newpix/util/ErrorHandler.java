@@ -4,6 +4,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.net.SocketTimeoutException;
+import java.net.SocketException;
+import java.net.ConnectException;
+import java.io.IOException;
 
 /**
  * Classe centralizada para tratamento robusto de exceções e erros.
@@ -204,9 +208,118 @@ public class ErrorHandler {
      * Trata shutdown gracioso do sistema.
      */
     public static void handleShutdown(String reason) {
-        System.out.println("Sistema sendo encerrado: " + reason);
+        CLILogger.info("Sistema sendo encerrado: " + reason);
         
         // Cleanup adicional se necessário
         System.exit(0);
+    }
+    
+    /**
+     * Método de recovery para falhas de conexão
+     */
+    public static boolean attemptConnectionRecovery(String host, int port, int maxAttempts) {
+        CLILogger.warning("Tentando recuperar conexão com " + host + ":" + port);
+        
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                CLILogger.info("Tentativa de reconexão " + attempt + "/" + maxAttempts);
+                
+                if (ConnectionConfig.testConnection(host, port)) {
+                    CLILogger.success("Conexão recuperada com sucesso!");
+                    return true;
+                }
+                
+                // Aguardar antes da próxima tentativa
+                if (attempt < maxAttempts) {
+                    Thread.sleep(2000 * attempt); // Backoff exponencial
+                }
+                
+            } catch (Exception e) {
+                CLILogger.debug("Tentativa " + attempt + " falhou: " + e.getMessage());
+            }
+        }
+        
+        CLILogger.error("Falha ao recuperar conexão após " + maxAttempts + " tentativas");
+        return false;
+    }
+    
+    /**
+     * Tratamento específico para erros de timeout
+     */
+    public static boolean handleTimeoutError(Exception e, Component parent, String operation) {
+        String userMessage = "A operação demorou mais que o esperado. Verifique sua conexão.";
+        logErrorWithCLI("TIMEOUT_ERROR", e, operation);
+        
+        if (parent != null) {
+            int result = JOptionPane.showConfirmDialog(parent, 
+                userMessage + "\n\nDeseja tentar novamente?", 
+                "Timeout", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            
+            return result == JOptionPane.YES_OPTION;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Tratamento específico para erros de conexão recusada
+     */
+    public static boolean handleConnectionRefused(Exception e, Component parent, String operation) {
+        String userMessage = "Servidor indisponível. Verifique se o servidor está funcionando.";
+        logErrorWithCLI("CONNECTION_REFUSED", e, operation);
+        
+        if (parent != null) {
+            int result = JOptionPane.showConfirmDialog(parent, 
+                userMessage + "\n\nDeseja tentar reconectar?", 
+                "Servidor Indisponível", JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE);
+            
+            return result == JOptionPane.YES_OPTION;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Log de erro integrado com CLILogger
+     */
+    private static void logErrorWithCLI(String errorType, Exception e, String operation) {
+        // Log tradicional
+        logError(errorType, e, operation);
+        
+        // Log colorido no CLI
+        CLILogger.error(String.format("[%s] %s - %s", errorType, operation, e.getMessage()));
+    }
+    
+    /**
+     * Validação robusta de input com recovery
+     */
+    public static boolean validateInput(String input, String fieldName, Component parent) {
+        if (input == null || input.trim().isEmpty()) {
+            CLILogger.warning("Validação falhou: " + fieldName + " está vazio");
+            
+            if (parent != null) {
+                showWarningDialog(parent, "Campo Obrigatório", 
+                    "O campo '" + fieldName + "' é obrigatório.");
+            }
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Wrapper seguro para operações críticas
+     */
+    public static <T> T safeExecuteWithResult(java.util.function.Supplier<T> operation, T defaultValue, String operationName) {
+        try {
+            CLILogger.debug("Executando operação: " + operationName);
+            T result = operation.get();
+            CLILogger.debug("Operação concluída: " + operationName);
+            return result;
+        } catch (Exception e) {
+            CLILogger.error("Falha na operação " + operationName + ": " + e.getMessage());
+            handleUnexpectedError(e, null, operationName);
+            return defaultValue;
+        }
     }
 }
