@@ -331,7 +331,7 @@ public class ServerGUI extends JFrame {
         JButton button = new JButton(text);
         button.setFont(NewPixTheme.FONT_BODY);
         button.setBackground(color);
-        button.setForeground(Color.WHITE);
+        button.setForeground(Color.BLACK);
         button.setOpaque(true);
         button.setBorderPainted(true);
         button.setBorder(BorderFactory.createLineBorder(color.darker(), 1));
