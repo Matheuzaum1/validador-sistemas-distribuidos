@@ -1,6 +1,10 @@
 package com.newpix.server.gui;
 
 import com.newpix.dao.DatabaseManager;
+import com.newpix.dao.UsuarioDAO;
+import com.newpix.dao.TransacaoDAO;
+import com.newpix.model.Usuario;
+import com.newpix.model.Transacao;
 import com.newpix.server.NewPixServer;
 import com.newpix.client.gui.theme.NewPixTheme;
 
@@ -33,13 +37,33 @@ public class ServerGUI extends JFrame {
     private JLabel serverIpLabel;
     private boolean serverRunning = false;
     
+    // Banco de dados
+    private DatabaseManager dbManager;
+    private UsuarioDAO usuarioDAO;
+    private TransacaoDAO transacaoDAO;
+    
     // Componentes da aba de dispositivos
     private JTabbedPane tabbedPane;
     private DefaultTableModel devicesTableModel;
     private JTable devicesTable;
     private javax.swing.Timer devicesRefreshTimer;
     
+    // Componentes da aba de banco de dados
+    private DefaultTableModel databaseTableModel;
+    private JTable databaseTable;
+    private JTextField searchField;
+    private JComboBox<String> tableComboBox;
+    private JButton refreshDbButton;
+    private JButton addButton;
+    private JButton editButton;
+    private JButton deleteButton;
+    
     public ServerGUI() {
+        // Inicializar DAOs
+        this.dbManager = DatabaseManager.getInstance();
+        this.usuarioDAO = new UsuarioDAO();
+        this.transacaoDAO = new TransacaoDAO();
+        
         initializeComponents();
         setupLayout();
         setupEventHandlers();
@@ -155,6 +179,10 @@ public class ServerGUI extends JFrame {
         JPanel devicesPanel = createDevicesPanel();
         tabbedPane.addTab("[DEVICES] Conectados", devicesPanel);
         
+        // Aba 3: Explorador de Banco de Dados
+        JPanel databasePanel = createDatabasePanel();
+        tabbedPane.addTab("[DATABASE] Banco de Dados", databasePanel);
+        
         // Panel inferior - informações
         JPanel infoPanel = NewPixTheme.createCard();
         infoPanel.setLayout(new BorderLayout());
@@ -227,6 +255,375 @@ public class ServerGUI extends JFrame {
         devicesPanel.add(tableScrollPane, BorderLayout.CENTER);
         
         return devicesPanel;
+    }
+    
+    private JPanel createDatabasePanel() {
+        JPanel databasePanel = NewPixTheme.createCard();
+        databasePanel.setLayout(new BorderLayout());
+        databasePanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(null, "[DATABASE] Explorador do Banco de Dados", 
+                0, 0, NewPixTheme.FONT_SUBTITLE, NewPixTheme.TEXT_PRIMARY),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+        
+        // Painel superior com controles
+        JPanel controlsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        controlsPanel.setBackground(NewPixTheme.BACKGROUND_CARD);
+        
+        // ComboBox para selecionar tabela
+        JLabel tableLabel = new JLabel("Tabela:");
+        tableLabel.setFont(NewPixTheme.FONT_BODY);
+        tableLabel.setForeground(Color.BLACK);
+        
+        tableComboBox = new JComboBox<>(new String[]{"usuarios", "transacoes", "sessoes"});
+        tableComboBox.setFont(NewPixTheme.FONT_BODY);
+        tableComboBox.setBackground(NewPixTheme.BACKGROUND_CARD);
+        tableComboBox.setForeground(Color.BLACK);
+        tableComboBox.addActionListener(e -> loadTableData());
+        
+        // Campo de busca
+        JLabel searchLabel = new JLabel("Buscar:");
+        searchLabel.setFont(NewPixTheme.FONT_BODY);
+        searchLabel.setForeground(Color.BLACK);
+        
+        searchField = new JTextField(15);
+        searchField.setFont(NewPixTheme.FONT_BODY);
+        searchField.setBackground(NewPixTheme.BACKGROUND_CARD);
+        searchField.setForeground(Color.BLACK);
+        searchField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        
+        // Botões de ação
+        refreshDbButton = createDbButton("ATUALIZAR", Color.BLUE);
+        addButton = createDbButton("ADICIONAR", Color.GREEN);
+        editButton = createDbButton("EDITAR", Color.ORANGE);
+        deleteButton = createDbButton("DELETAR", Color.RED);
+        
+        // Adicionar event listeners
+        refreshDbButton.addActionListener(e -> loadTableData());
+        addButton.addActionListener(e -> showAddDialog());
+        editButton.addActionListener(e -> showEditDialog());
+        deleteButton.addActionListener(e -> deleteSelectedRow());
+        
+        controlsPanel.add(tableLabel);
+        controlsPanel.add(tableComboBox);
+        controlsPanel.add(Box.createHorizontalStrut(20));
+        controlsPanel.add(searchLabel);
+        controlsPanel.add(searchField);
+        controlsPanel.add(Box.createHorizontalStrut(20));
+        controlsPanel.add(refreshDbButton);
+        controlsPanel.add(addButton);
+        controlsPanel.add(editButton);
+        controlsPanel.add(deleteButton);
+        
+        // Tabela do banco de dados
+        initializeDatabaseTable();
+        JScrollPane dbScrollPane = new JScrollPane(databaseTable);
+        dbScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        dbScrollPane.setBackground(NewPixTheme.BACKGROUND_CARD);
+        
+        databasePanel.add(controlsPanel, BorderLayout.NORTH);
+        databasePanel.add(dbScrollPane, BorderLayout.CENTER);
+        
+        return databasePanel;
+    }
+    
+    private JButton createDbButton(String text, Color color) {
+        JButton button = new JButton(text);
+        button.setFont(NewPixTheme.FONT_BODY);
+        button.setBackground(color);
+        button.setForeground(Color.WHITE);
+        button.setOpaque(true);
+        button.setBorderPainted(true);
+        button.setBorder(BorderFactory.createLineBorder(color.darker(), 1));
+        button.setFocusPainted(false);
+        return button;
+    }
+    
+    private void initializeDatabaseTable() {
+        // Colunas iniciais (serão atualizadas dinamicamente)
+        String[] columnNames = {"ID", "Dados", "Timestamp"};
+        
+        // Modelo da tabela não editável
+        databaseTableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        
+        // Criar tabela
+        databaseTable = new JTable(databaseTableModel);
+        databaseTable.setFont(NewPixTheme.FONT_BODY);
+        databaseTable.setBackground(NewPixTheme.BACKGROUND_CARD);
+        databaseTable.setForeground(Color.BLACK);
+        databaseTable.setGridColor(Color.LIGHT_GRAY);
+        databaseTable.setSelectionBackground(NewPixTheme.PRIMARY_COLOR);
+        databaseTable.setSelectionForeground(Color.WHITE);
+        databaseTable.setRowHeight(25);
+        
+        // Configurar cabeçalho
+        databaseTable.getTableHeader().setFont(NewPixTheme.FONT_SUBTITLE);
+        databaseTable.getTableHeader().setBackground(Color.LIGHT_GRAY);
+        databaseTable.getTableHeader().setForeground(Color.BLACK);
+        databaseTable.getTableHeader().setOpaque(true);
+        
+        // Carregar dados iniciais
+        loadTableData();
+    }
+    
+    private void loadTableData() {
+        if (databaseTableModel == null) return;
+        
+        String selectedTable = (String) tableComboBox.getSelectedItem();
+        
+        try {
+            // Limpar tabela atual
+            databaseTableModel.setRowCount(0);
+            
+            if ("usuarios".equals(selectedTable)) {
+                loadUsersData();
+            } else if ("transacoes".equals(selectedTable)) {
+                loadTransactionsData();
+            } else if ("sessoes".equals(selectedTable)) {
+                loadSessionsData();
+            }
+            
+        } catch (Exception e) {
+            logArea.append("Erro ao carregar dados da tabela " + selectedTable + ": " + e.getMessage() + "\n");
+        }
+    }
+    
+    private void loadUsersData() {
+        // Atualizar colunas para usuarios
+        String[] userColumns = {"CPF", "Nome", "Saldo", "Criado em"};
+        databaseTableModel.setColumnIdentifiers(userColumns);
+        
+        try {
+            List<Usuario> users = usuarioDAO.listarTodos();
+            for (Usuario user : users) {
+                Object[] rowData = {
+                    user.getCpf(),
+                    user.getNome(),
+                    String.format("R$ %.2f", user.getSaldo()),
+                    user.getCriadoEm() != null ? user.getCriadoEm().toString() : "N/A"
+                };
+                databaseTableModel.addRow(rowData);
+            }
+            logArea.append("Carregados " + users.size() + " usuários do banco de dados.\n");
+        } catch (Exception e) {
+            logArea.append("Erro ao carregar usuários: " + e.getMessage() + "\n");
+        }
+    }
+    
+    private void loadTransactionsData() {
+        // Atualizar colunas para transacoes
+        String[] transactionColumns = {"ID", "CPF Origem", "CPF Destino", "Valor", "Data"};
+        databaseTableModel.setColumnIdentifiers(transactionColumns);
+        
+        try {
+            List<Transacao> transactions = transacaoDAO.listarTodas();
+            for (Transacao transaction : transactions) {
+                Object[] rowData = {
+                    transaction.getId(),
+                    transaction.getUsuarioEnviador() != null ? transaction.getUsuarioEnviador().getCpf() : "N/A",
+                    transaction.getUsuarioRecebedor() != null ? transaction.getUsuarioRecebedor().getCpf() : "N/A",
+                    String.format("R$ %.2f", transaction.getValorEnviado()),
+                    transaction.getCriadoEm() != null ? transaction.getCriadoEm().toString() : "N/A"
+                };
+                databaseTableModel.addRow(rowData);
+            }
+            logArea.append("Carregadas " + transactions.size() + " transações do banco de dados.\n");
+        } catch (Exception e) {
+            logArea.append("Erro ao carregar transações: " + e.getMessage() + "\n");
+        }
+    }
+    
+    private void loadSessionsData() {
+        // Atualizar colunas para sessoes (simulado)
+        String[] sessionColumns = {"ID", "CPF", "Token", "IP", "Status", "Criado em"};
+        databaseTableModel.setColumnIdentifiers(sessionColumns);
+        
+        // Dados simulados para sessões
+        if (server != null && serverRunning && server.getActiveClientCount() > 0) {
+            for (int i = 0; i < server.getActiveClientCount(); i++) {
+                Object[] rowData = {
+                    i + 1,
+                    "XXX.XXX.XXX-XX",
+                    "token_" + System.currentTimeMillis(),
+                    "192.168.1." + (100 + i),
+                    "ATIVA",
+                    new java.util.Date().toString()
+                };
+                databaseTableModel.addRow(rowData);
+            }
+        }
+        logArea.append("Carregadas " + databaseTableModel.getRowCount() + " sessões ativas.\n");
+    }
+    
+    private void showAddDialog() {
+        String selectedTable = (String) tableComboBox.getSelectedItem();
+        
+        if ("usuarios".equals(selectedTable)) {
+            showAddUserDialog();
+        } else if ("transacoes".equals(selectedTable)) {
+            JOptionPane.showMessageDialog(this, "Transações são criadas automaticamente via PIX", "Info", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, "Não é possível adicionar sessões manualmente", "Info", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+    
+    private void showAddUserDialog() {
+        JDialog dialog = new JDialog(this, "Adicionar Usuário", true);
+        dialog.setSize(350, 250);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout());
+        
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(NewPixTheme.BACKGROUND_CARD);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        
+        // CPF
+        gbc.gridx = 0; gbc.gridy = 0;
+        JLabel cpfLabel = new JLabel("CPF:");
+        cpfLabel.setForeground(Color.BLACK);
+        formPanel.add(cpfLabel, gbc);
+        
+        gbc.gridx = 1;
+        JTextField cpfField = new JTextField(15);
+        cpfField.setForeground(Color.BLACK);
+        formPanel.add(cpfField, gbc);
+        
+        // Nome
+        gbc.gridx = 0; gbc.gridy = 1;
+        JLabel nomeLabel = new JLabel("Nome:");
+        nomeLabel.setForeground(Color.BLACK);
+        formPanel.add(nomeLabel, gbc);
+        
+        gbc.gridx = 1;
+        JTextField nomeField = new JTextField(15);
+        nomeField.setForeground(Color.BLACK);
+        formPanel.add(nomeField, gbc);
+        
+        // Senha
+        gbc.gridx = 0; gbc.gridy = 2;
+        JLabel senhaLabel = new JLabel("Senha:");
+        senhaLabel.setForeground(Color.BLACK);
+        formPanel.add(senhaLabel, gbc);
+        
+        gbc.gridx = 1;
+        JPasswordField senhaField = new JPasswordField(15);
+        senhaField.setForeground(Color.BLACK);
+        formPanel.add(senhaField, gbc);
+        
+        // Saldo inicial
+        gbc.gridx = 0; gbc.gridy = 3;
+        JLabel saldoLabel = new JLabel("Saldo inicial:");
+        saldoLabel.setForeground(Color.BLACK);
+        formPanel.add(saldoLabel, gbc);
+        
+        gbc.gridx = 1;
+        JTextField saldoField = new JTextField("0.00", 15);
+        saldoField.setForeground(Color.BLACK);
+        formPanel.add(saldoField, gbc);
+        
+        // Botões
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.setBackground(NewPixTheme.BACKGROUND_CARD);
+        
+        JButton saveButton = createDbButton("SALVAR", Color.GREEN);
+        JButton cancelButton = createDbButton("CANCELAR", Color.GRAY);
+        
+        saveButton.addActionListener(e -> {
+            try {
+                String cpf = cpfField.getText().trim();
+                String nome = nomeField.getText().trim();
+                String senha = new String(senhaField.getPassword());
+                double saldo = Double.parseDouble(saldoField.getText().trim());
+                
+                if (cpf.isEmpty() || nome.isEmpty() || senha.isEmpty()) {
+                    JOptionPane.showMessageDialog(dialog, "Todos os campos são obrigatórios!", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                // Criar o usuário
+                Usuario novoUsuario = new Usuario();
+                novoUsuario.setCpf(cpf);
+                novoUsuario.setNome(nome);
+                novoUsuario.setSenha(senha);
+                novoUsuario.setSaldo(saldo);
+                novoUsuario.setCriadoEm(java.time.LocalDateTime.now());
+                novoUsuario.setAtualizadoEm(java.time.LocalDateTime.now());
+                
+                usuarioDAO.criar(novoUsuario);
+                loadTableData();
+                dialog.dispose();
+                logArea.append("Usuário criado: " + nome + " (" + cpf + ")\n");
+                
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Erro ao criar usuário: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        
+        cancelButton.addActionListener(e -> dialog.dispose());
+        
+        buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
+        
+        dialog.add(formPanel, BorderLayout.CENTER);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+        dialog.setVisible(true);
+    }
+    
+    private void showEditDialog() {
+        int selectedRow = databaseTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Selecione um registro para editar", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        String selectedTable = (String) tableComboBox.getSelectedItem();
+        
+        if ("usuarios".equals(selectedTable)) {
+            showEditUserDialog(selectedRow);
+        } else {
+            JOptionPane.showMessageDialog(this, "Edição não disponível para esta tabela", "Info", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+    
+    private void showEditUserDialog(int selectedRow) {
+        // Implementação similar ao showAddUserDialog, mas preenchendo com dados existentes
+        JOptionPane.showMessageDialog(this, "Funcionalidade de edição em desenvolvimento", "Info", JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    private void deleteSelectedRow() {
+        int selectedRow = databaseTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Selecione um registro para deletar", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        String selectedTable = (String) tableComboBox.getSelectedItem();
+        
+        int confirm = JOptionPane.showConfirmDialog(this, 
+            "Tem certeza que deseja deletar este registro?", 
+            "Confirmar Exclusão", 
+            JOptionPane.YES_NO_OPTION);
+            
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                if ("usuarios".equals(selectedTable)) {
+                    Object userId = databaseTableModel.getValueAt(selectedRow, 0);
+                    usuarioDAO.deletar(userId.toString());
+                    loadTableData();
+                    logArea.append("Usuário deletado (CPF: " + userId + ")\n");
+                } else {
+                    JOptionPane.showMessageDialog(this, "Exclusão não disponível para esta tabela", "Info", JOptionPane.INFORMATION_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Erro ao deletar: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
     
     private void setupEventHandlers() {
