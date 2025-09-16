@@ -199,4 +199,68 @@ public class ClientHandler extends Thread {
             System.err.println("Erro durante shutdown do cliente " + clientAddress + ": " + e.getMessage());
         }
     }
+    
+    /**
+     * Obtém o endereço IP do cliente.
+     */
+    public String getClientIP() {
+        try {
+            if (clientSocket != null && !clientSocket.isClosed()) {
+                String address = clientSocket.getRemoteSocketAddress().toString();
+                // Remover a porta e o '/' do início se presente
+                if (address.startsWith("/")) {
+                    address = address.substring(1);
+                }
+                if (address.contains(":")) {
+                    return address.substring(0, address.lastIndexOf(":"));
+                }
+                return address;
+            }
+        } catch (Exception e) {
+            System.err.println("Erro ao obter IP do cliente: " + e.getMessage());
+        }
+        return "unknown";
+    }
+    
+    /**
+     * Obtém a porta do cliente.
+     */
+    public int getClientPort() {
+        try {
+            if (clientSocket != null && !clientSocket.isClosed()) {
+                return clientSocket.getPort();
+            }
+        } catch (Exception e) {
+            System.err.println("Erro ao obter porta do cliente: " + e.getMessage());
+        }
+        return -1;
+    }
+    
+    /**
+     * Obtém o hostname do cliente.
+     */
+    public String getClientHostname() {
+        try {
+            if (clientSocket != null && !clientSocket.isClosed()) {
+                return clientSocket.getInetAddress().getHostName();
+            }
+        } catch (Exception e) {
+            System.err.println("Erro ao obter hostname do cliente: " + e.getMessage());
+        }
+        return "unknown";
+    }
+    
+    /**
+     * Verifica se a conexão ainda está ativa.
+     */
+    public boolean isConnected() {
+        return running && clientSocket != null && !clientSocket.isClosed() && clientSocket.isConnected();
+    }
+    
+    /**
+     * Obtém informações completas do cliente.
+     */
+    public String getClientInfo() {
+        return String.format("%s:%d (%s)", getClientIP(), getClientPort(), getClientHostname());
+    }
 }

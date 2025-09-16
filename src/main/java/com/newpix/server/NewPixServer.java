@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -249,6 +250,13 @@ public class NewPixServer {
      */
     public int getActiveClientCount() {
         return activeClients.size();
+    }
+    
+    /**
+     * Retorna uma cópia da lista de clientes ativos.
+     */
+    public List<ClientHandler> getActiveClients() {
+        return new ArrayList<>(activeClients);
     }
     
     /**

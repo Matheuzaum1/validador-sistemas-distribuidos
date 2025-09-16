@@ -6,6 +6,7 @@ import com.newpix.dao.TransacaoDAO;
 import com.newpix.model.Usuario;
 import com.newpix.model.Transacao;
 import com.newpix.server.NewPixServer;
+import com.newpix.server.ClientHandler;
 import com.newpix.client.gui.theme.NewPixTheme;
 
 import javax.swing.*;
@@ -781,18 +782,45 @@ public class ServerGUI extends JFrame {
     
     private String getServerIPAddress() {
         try {
-            // Tentar obter o IP local preferencial (não loopback)
+            // Método 1: Tentar obter o IP preferencial (não loopback, IPv4)
             for (NetworkInterface netInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-                if (netInterface.isUp() && !netInterface.isLoopback()) {
+                if (netInterface.isUp() && !netInterface.isLoopback() && !netInterface.isVirtual()) {
                     for (InetAddress address : Collections.list(netInterface.getInetAddresses())) {
-                        if (!address.isLoopbackAddress() && address.getHostAddress().indexOf(':') == -1) {
-                            return address.getHostAddress();
+                        if (!address.isLoopbackAddress() && 
+                            !address.isLinkLocalAddress() && 
+                            !address.isMulticastAddress() &&
+                            address.getHostAddress().indexOf(':') == -1) { // IPv4 apenas
+                            
+                            String ip = address.getHostAddress();
+                            
+                            // Priorizar IPs das redes comuns (172.x, 192.168.x, 10.x)
+                            if (ip.startsWith("172.") || ip.startsWith("192.168.") || ip.startsWith("10.")) {
+                                System.out.println("IP detectado (rede privada): " + ip + " em " + netInterface.getDisplayName());
+                                return ip;
+                            }
                         }
                     }
                 }
             }
+            
+            // Método 2: Se não encontrou IP de rede privada, tentar qualquer IP válido
+            for (NetworkInterface netInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (netInterface.isUp() && !netInterface.isLoopback()) {
+                    for (InetAddress address : Collections.list(netInterface.getInetAddresses())) {
+                        if (!address.isLoopbackAddress() && address.getHostAddress().indexOf(':') == -1) {
+                            String ip = address.getHostAddress();
+                            System.out.println("IP detectado (qualquer): " + ip + " em " + netInterface.getDisplayName());
+                            return ip;
+                        }
+                    }
+                }
+            }
+            
+            // Método 3: Fallback para localhost
+            System.out.println("Usando IP localhost como fallback");
             return InetAddress.getLocalHost().getHostAddress();
         } catch (Exception e) {
+            System.err.println("Erro ao detectar IP do servidor: " + e.getMessage());
             return "127.0.0.1";
         }
     }
@@ -842,25 +870,34 @@ public class ServerGUI extends JFrame {
             // Limpar tabela
             devicesTableModel.setRowCount(0);
             
-            // Adicionar dados dos clientes conectados
-            // Por enquanto, vamos simular alguns dados
-            // TODO: Implementar coleta real de dados dos clientes
+            // Obter lista de clientes conectados
+            List<ClientHandler> clients = server.getActiveClients();
             
-            if (server.getActiveClientCount() > 0) {
-                for (int i = 0; i < server.getActiveClientCount(); i++) {
-                    Object[] rowData = {
-                        "192.168.1." + (100 + i),  // IP simulado
-                        "Cliente" + (i + 1),        // Porta/Cliente
-                        "DESKTOP-CLIENT-" + (i + 1), // Hostname simulado
-                        "Conectado",                 // Status
-                        new Date().toString()        // Conectado em
-                    };
-                    devicesTableModel.addRow(rowData);
+            if (!clients.isEmpty()) {
+                for (ClientHandler client : clients) {
+                    // Verificar se o cliente ainda está conectado
+                    if (client.isConnected()) {
+                        Object[] rowData = {
+                            client.getClientIP(),           // IP real do cliente
+                            String.valueOf(client.getClientPort()), // Porta real do cliente
+                            client.getClientHostname(),     // Hostname real
+                            "Conectado",                    // Status
+                            new Date().toString()           // Conectado em (pode ser melhorado)
+                        };
+                        devicesTableModel.addRow(rowData);
+                    }
                 }
+                
+                logArea.append("Tabela de dispositivos atualizada: " + clients.size() + " clientes conectados\n");
+            } else {
+                logArea.append("Nenhum cliente conectado no momento\n");
             }
         } else {
             // Servidor parado - limpar tabela
             devicesTableModel.setRowCount(0);
+            if (devicesTableModel.getRowCount() == 0) {
+                logArea.append("Servidor parado - tabela de dispositivos limpa\n");
+            }
         }
     }
 
