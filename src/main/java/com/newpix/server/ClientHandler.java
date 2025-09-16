@@ -207,19 +207,74 @@ public class ClientHandler extends Thread {
         try {
             if (clientSocket != null && !clientSocket.isClosed()) {
                 String address = clientSocket.getRemoteSocketAddress().toString();
+                
                 // Remover a porta e o '/' do início se presente
                 if (address.startsWith("/")) {
                     address = address.substring(1);
                 }
                 if (address.contains(":")) {
-                    return address.substring(0, address.lastIndexOf(":"));
+                    address = address.substring(0, address.lastIndexOf(":"));
                 }
+                
+                // Se for um IP interno do Docker/Kubernetes, tentar obter o IP real
+                if (address.equals("127.0.0.1") || 
+                    address.startsWith("kubernetes.docker.internal") ||
+                    address.startsWith("docker.") ||
+                    address.startsWith("host.docker.internal")) {
+                    
+                    // Tentar obter IP real via diferentes métodos
+                    String realIP = getRealClientIP();
+                    if (realIP != null && !realIP.equals("unknown")) {
+                        System.out.println("IP Docker detectado (" + address + "), usando IP real: " + realIP);
+                        return realIP;
+                    }
+                    
+                    System.out.println("Conexão via Docker/Kubernetes detectada: " + address);
+                    return address + " (Docker)";
+                }
+                
                 return address;
             }
         } catch (Exception e) {
             System.err.println("Erro ao obter IP do cliente: " + e.getMessage());
         }
         return "unknown";
+    }
+    
+    /**
+     * Tenta obter o IP real do cliente quando conectado via Docker/proxy.
+     */
+    private String getRealClientIP() {
+        try {
+            // Método 1: Verificar se há headers HTTP (se fosse uma conexão HTTP)
+            // Como não é HTTP, vamos tentar outros métodos
+            
+            // Método 2: Tentar obter o IP da máquina local (servidor)
+            // Assumir que cliente e servidor estão na mesma máquina/rede
+            for (java.net.NetworkInterface netInterface : java.util.Collections.list(java.net.NetworkInterface.getNetworkInterfaces())) {
+                if (netInterface.isUp() && !netInterface.isLoopback() && !netInterface.isVirtual()) {
+                    for (java.net.InetAddress address : java.util.Collections.list(netInterface.getInetAddresses())) {
+                        if (!address.isLoopbackAddress() && 
+                            !address.isLinkLocalAddress() && 
+                            !address.isMulticastAddress() &&
+                            address.getHostAddress().indexOf(':') == -1) { // IPv4 apenas
+                            
+                            String ip = address.getHostAddress();
+                            
+                            // Priorizar IPs das redes comuns
+                            if (ip.startsWith("172.") || ip.startsWith("192.168.") || ip.startsWith("10.")) {
+                                return ip;
+                            }
+                        }
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Erro ao tentar obter IP real: " + e.getMessage());
+        }
+        
+        return null;
     }
     
     /**
@@ -242,7 +297,28 @@ public class ClientHandler extends Thread {
     public String getClientHostname() {
         try {
             if (clientSocket != null && !clientSocket.isClosed()) {
-                return clientSocket.getInetAddress().getHostName();
+                String hostname = clientSocket.getInetAddress().getHostName();
+                
+                // Se for hostname interno do Docker/Kubernetes, usar algo mais amigável
+                if (hostname.contains("kubernetes.docker.internal") ||
+                    hostname.contains("docker.internal") ||
+                    hostname.equals("127.0.0.1") ||
+                    hostname.startsWith("docker-")) {
+                    
+                    // Tentar obter hostname real da máquina
+                    try {
+                        String realHostname = java.net.InetAddress.getLocalHost().getHostName();
+                        if (realHostname != null && !realHostname.isEmpty()) {
+                            System.out.println("Hostname Docker detectado (" + hostname + "), usando hostname real: " + realHostname);
+                            return realHostname + " (via Docker)";
+                        }
+                    } catch (Exception e) {
+                        // Fallback para hostname mais amigável
+                        return "Cliente-Docker";
+                    }
+                }
+                
+                return hostname;
             }
         } catch (Exception e) {
             System.err.println("Erro ao obter hostname do cliente: " + e.getMessage());

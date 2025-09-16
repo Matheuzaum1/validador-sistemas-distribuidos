@@ -293,23 +293,47 @@ public class ServerGUI extends JFrame {
         searchField.setForeground(Color.BLACK);
         searchField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
         
+        // Adicionar funcionalidade de busca em tempo real
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                ServerGUI.this.filterTableData();
+            }
+            
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                ServerGUI.this.filterTableData();
+            }
+            
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                ServerGUI.this.filterTableData();
+            }
+        });
+        
         // Botões de ação
         refreshDbButton = createDbButton("ATUALIZAR", Color.BLUE);
         addButton = createDbButton("ADICIONAR", Color.GREEN);
         editButton = createDbButton("EDITAR", Color.ORANGE);
         deleteButton = createDbButton("DELETAR", Color.RED);
+        JButton clearSearchButton = createDbButton("LIMPAR BUSCA", Color.GRAY);
         
         // Adicionar event listeners
         refreshDbButton.addActionListener(e -> loadTableData());
         addButton.addActionListener(e -> showAddDialog());
         editButton.addActionListener(e -> showEditDialog());
         deleteButton.addActionListener(e -> deleteSelectedRow());
+        clearSearchButton.addActionListener(e -> {
+            searchField.setText("");
+            loadTableData();
+        });
         
         controlsPanel.add(tableLabel);
         controlsPanel.add(tableComboBox);
         controlsPanel.add(Box.createHorizontalStrut(20));
         controlsPanel.add(searchLabel);
         controlsPanel.add(searchField);
+        controlsPanel.add(clearSearchButton);
         controlsPanel.add(Box.createHorizontalStrut(20));
         controlsPanel.add(refreshDbButton);
         controlsPanel.add(addButton);
@@ -542,8 +566,40 @@ public class ServerGUI extends JFrame {
                 String senha = new String(senhaField.getPassword());
                 double saldo = Double.parseDouble(saldoField.getText().trim());
                 
+                // Validações básicas
                 if (cpf.isEmpty() || nome.isEmpty() || senha.isEmpty()) {
                     JOptionPane.showMessageDialog(dialog, "Todos os campos são obrigatórios!", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                // Validar formato do CPF
+                if (!isValidCPF(cpf)) {
+                    JOptionPane.showMessageDialog(dialog, "CPF deve ter formato XXX.XXX.XXX-XX ou 11 dígitos!", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                // Validar nome (mínimo 2 caracteres)
+                if (nome.length() < 2) {
+                    JOptionPane.showMessageDialog(dialog, "Nome deve ter pelo menos 2 caracteres!", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                // Validar senha (mínimo 4 caracteres)
+                if (senha.length() < 4) {
+                    JOptionPane.showMessageDialog(dialog, "Senha deve ter pelo menos 4 caracteres!", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                // Validar saldo
+                if (saldo < 0) {
+                    JOptionPane.showMessageDialog(dialog, "Saldo não pode ser negativo!", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                // Verificar se CPF já existe
+                Usuario existente = usuarioDAO.buscarPorCpf(cpf);
+                if (existente != null) {
+                    JOptionPane.showMessageDialog(dialog, "CPF já está cadastrado no sistema!", "Erro", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 
@@ -593,8 +649,147 @@ public class ServerGUI extends JFrame {
     }
     
     private void showEditUserDialog(int selectedRow) {
-        // Implementação similar ao showAddUserDialog, mas preenchendo com dados existentes
-        JOptionPane.showMessageDialog(this, "Funcionalidade de edição em desenvolvimento", "Info", JOptionPane.INFORMATION_MESSAGE);
+        try {
+            // Obter CPF da linha selecionada (coluna 0)
+            String cpf = (String) databaseTableModel.getValueAt(selectedRow, 0);
+            
+            // Buscar usuário no banco de dados
+            Usuario usuario = usuarioDAO.buscarPorCpf(cpf);
+            if (usuario == null) {
+                JOptionPane.showMessageDialog(this, "Usuário não encontrado no banco de dados!", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Criar diálogo de edição
+            JDialog dialog = new JDialog(this, "Editar Usuário - " + cpf, true);
+            dialog.setSize(350, 280);
+            dialog.setLocationRelativeTo(this);
+            dialog.setLayout(new BorderLayout());
+            
+            JPanel formPanel = new JPanel(new GridBagLayout());
+            formPanel.setBackground(NewPixTheme.BACKGROUND_CARD);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            
+            // CPF (somente leitura)
+            gbc.gridx = 0; gbc.gridy = 0;
+            JLabel cpfLabel = new JLabel("CPF:");
+            cpfLabel.setForeground(Color.BLACK);
+            formPanel.add(cpfLabel, gbc);
+            
+            gbc.gridx = 1;
+            JTextField cpfField = new JTextField(usuario.getCpf(), 15);
+            cpfField.setForeground(Color.GRAY);
+            cpfField.setEditable(false); // CPF não pode ser alterado
+            cpfField.setBackground(Color.LIGHT_GRAY);
+            formPanel.add(cpfField, gbc);
+            
+            // Nome
+            gbc.gridx = 0; gbc.gridy = 1;
+            JLabel nomeLabel = new JLabel("Nome:");
+            nomeLabel.setForeground(Color.BLACK);
+            formPanel.add(nomeLabel, gbc);
+            
+            gbc.gridx = 1;
+            JTextField nomeField = new JTextField(usuario.getNome(), 15);
+            nomeField.setForeground(Color.BLACK);
+            formPanel.add(nomeField, gbc);
+            
+            // Senha (campo vazio por segurança)
+            gbc.gridx = 0; gbc.gridy = 2;
+            JLabel senhaLabel = new JLabel("Nova Senha:");
+            senhaLabel.setForeground(Color.BLACK);
+            formPanel.add(senhaLabel, gbc);
+            
+            gbc.gridx = 1;
+            JPasswordField senhaField = new JPasswordField(15);
+            senhaField.setForeground(Color.BLACK);
+            formPanel.add(senhaField, gbc);
+            
+            // Info sobre senha
+            gbc.gridx = 1; gbc.gridy = 3;
+            JLabel senhaInfo = new JLabel("(Deixe vazio para manter atual)");
+            senhaInfo.setForeground(Color.GRAY);
+            senhaInfo.setFont(senhaInfo.getFont().deriveFont(10f));
+            formPanel.add(senhaInfo, gbc);
+            
+            // Saldo
+            gbc.gridx = 0; gbc.gridy = 4;
+            JLabel saldoLabel = new JLabel("Saldo:");
+            saldoLabel.setForeground(Color.BLACK);
+            formPanel.add(saldoLabel, gbc);
+            
+            gbc.gridx = 1;
+            JTextField saldoField = new JTextField(String.format("%.2f", usuario.getSaldo()), 15);
+            saldoField.setForeground(Color.BLACK);
+            formPanel.add(saldoField, gbc);
+            
+            // Botões
+            JPanel buttonPanel = new JPanel(new FlowLayout());
+            buttonPanel.setBackground(NewPixTheme.BACKGROUND_CARD);
+            
+            JButton saveButton = createDbButton("SALVAR", Color.GREEN);
+            JButton cancelButton = createDbButton("CANCELAR", Color.GRAY);
+            
+            saveButton.addActionListener(e -> {
+                try {
+                    String novoNome = nomeField.getText().trim();
+                    String novaSenha = new String(senhaField.getPassword());
+                    double novoSaldo = Double.parseDouble(saldoField.getText().trim());
+                    
+                    if (novoNome.isEmpty()) {
+                        JOptionPane.showMessageDialog(dialog, "Nome é obrigatório!", "Erro", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    
+                    if (novoSaldo < 0) {
+                        JOptionPane.showMessageDialog(dialog, "Saldo não pode ser negativo!", "Erro", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    
+                    // Atualizar dados do usuário
+                    usuario.setNome(novoNome);
+                    usuario.setSaldo(novoSaldo);
+                    usuario.setAtualizadoEm(java.time.LocalDateTime.now());
+                    
+                    // Atualizar senha apenas se foi fornecida
+                    if (!novaSenha.trim().isEmpty()) {
+                        usuario.setSenha(novaSenha);
+                    }
+                    
+                    // Salvar no banco de dados
+                    boolean sucesso = usuarioDAO.atualizar(usuario);
+                    
+                    if (sucesso) {
+                        loadTableData(); // Recarregar tabela
+                        dialog.dispose();
+                        logArea.append("Usuário atualizado: " + novoNome + " (" + cpf + ")\n");
+                        JOptionPane.showMessageDialog(this, "Usuário atualizado com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(dialog, "Falha ao atualizar usuário no banco de dados!", "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
+                    
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(dialog, "Saldo deve ser um número válido!", "Erro", JOptionPane.ERROR_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(dialog, "Erro ao atualizar usuário: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                    logArea.append("Erro ao editar usuário: " + ex.getMessage() + "\n");
+                }
+            });
+            
+            cancelButton.addActionListener(e -> dialog.dispose());
+            
+            buttonPanel.add(saveButton);
+            buttonPanel.add(cancelButton);
+            
+            dialog.add(formPanel, BorderLayout.CENTER);
+            dialog.add(buttonPanel, BorderLayout.SOUTH);
+            dialog.setVisible(true);
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Erro ao carregar dados do usuário: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            logArea.append("Erro ao abrir diálogo de edição: " + e.getMessage() + "\n");
+        }
     }
     
     private void deleteSelectedRow() {
@@ -625,6 +820,141 @@ public class ServerGUI extends JFrame {
                 JOptionPane.showMessageDialog(this, "Erro ao deletar: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+    
+    private void filterTableData() {
+        String searchText = searchField.getText().trim().toLowerCase();
+        String selectedTable = (String) tableComboBox.getSelectedItem();
+        
+        // Se campo de busca está vazio, carregar todos os dados
+        if (searchText.isEmpty()) {
+            loadTableData();
+            return;
+        }
+        
+        // Filtrar dados baseado na tabela selecionada
+        try {
+            // Limpar tabela atual
+            databaseTableModel.setRowCount(0);
+            
+            if ("usuarios".equals(selectedTable)) {
+                filterUsersData(searchText);
+            } else if ("transacoes".equals(selectedTable)) {
+                filterTransactionsData(searchText);
+            } else if ("sessoes".equals(selectedTable)) {
+                filterSessionsData(searchText);
+            }
+            
+        } catch (Exception e) {
+            logArea.append("Erro ao filtrar dados: " + e.getMessage() + "\n");
+        }
+    }
+    
+    private void filterUsersData(String searchText) {
+        // Atualizar colunas para usuarios
+        String[] userColumns = {"CPF", "Nome", "Saldo", "Criado em"};
+        databaseTableModel.setColumnIdentifiers(userColumns);
+        
+        try {
+            List<Usuario> users = usuarioDAO.listarTodos();
+            int count = 0;
+            
+            for (Usuario user : users) {
+                // Buscar por CPF, Nome ou Saldo
+                String cpf = user.getCpf().toLowerCase();
+                String nome = user.getNome().toLowerCase();
+                String saldo = String.format("%.2f", user.getSaldo());
+                
+                if (cpf.contains(searchText) || 
+                    nome.contains(searchText) || 
+                    saldo.contains(searchText)) {
+                    
+                    Object[] rowData = {
+                        user.getCpf(),
+                        user.getNome(),
+                        String.format("R$ %.2f", user.getSaldo()),
+                        user.getCriadoEm() != null ? user.getCriadoEm().toString() : "N/A"
+                    };
+                    databaseTableModel.addRow(rowData);
+                    count++;
+                }
+            }
+            
+            logArea.append("Busca por '" + searchText + "': " + count + " usuários encontrados.\n");
+        } catch (Exception e) {
+            logArea.append("Erro ao filtrar usuários: " + e.getMessage() + "\n");
+        }
+    }
+    
+    private void filterTransactionsData(String searchText) {
+        // Atualizar colunas para transacoes
+        String[] transactionColumns = {"ID", "CPF Origem", "CPF Destino", "Valor", "Data"};
+        databaseTableModel.setColumnIdentifiers(transactionColumns);
+        
+        try {
+            List<Transacao> transactions = transacaoDAO.listarTodas();
+            int count = 0;
+            
+            for (Transacao transaction : transactions) {
+                // Buscar por CPF origem, CPF destino, valor ou ID
+                String cpfOrigem = transaction.getUsuarioEnviador() != null ? 
+                    transaction.getUsuarioEnviador().getCpf().toLowerCase() : "";
+                String cpfDestino = transaction.getUsuarioRecebedor() != null ? 
+                    transaction.getUsuarioRecebedor().getCpf().toLowerCase() : "";
+                String valor = String.format("%.2f", transaction.getValorEnviado());
+                String id = String.valueOf(transaction.getId());
+                
+                if (cpfOrigem.contains(searchText) || 
+                    cpfDestino.contains(searchText) || 
+                    valor.contains(searchText) ||
+                    id.contains(searchText)) {
+                    
+                    Object[] rowData = {
+                        transaction.getId(),
+                        cpfOrigem.isEmpty() ? "N/A" : transaction.getUsuarioEnviador().getCpf(),
+                        cpfDestino.isEmpty() ? "N/A" : transaction.getUsuarioRecebedor().getCpf(),
+                        String.format("R$ %.2f", transaction.getValorEnviado()),
+                        transaction.getCriadoEm() != null ? transaction.getCriadoEm().toString() : "N/A"
+                    };
+                    databaseTableModel.addRow(rowData);
+                    count++;
+                }
+            }
+            
+            logArea.append("Busca por '" + searchText + "': " + count + " transações encontradas.\n");
+        } catch (Exception e) {
+            logArea.append("Erro ao filtrar transações: " + e.getMessage() + "\n");
+        }
+    }
+    
+    private void filterSessionsData(String searchText) {
+        // Para sessões, simplesmente recarregar dados (são simulados)
+        loadSessionsData();
+        logArea.append("Busca em sessões não implementada (dados simulados).\n");
+    }
+    
+    /**
+     * Valida o formato do CPF (XXX.XXX.XXX-XX ou 11 dígitos).
+     */
+    private boolean isValidCPF(String cpf) {
+        if (cpf == null || cpf.trim().isEmpty()) {
+            return false;
+        }
+        
+        // Remover caracteres especiais
+        String cleanCpf = cpf.replaceAll("[^0-9]", "");
+        
+        // Verificar se tem 11 dígitos
+        if (cleanCpf.length() != 11) {
+            return false;
+        }
+        
+        // Verificar se não são todos dígitos iguais
+        if (cleanCpf.matches("(\\d)\\1{10}")) {
+            return false;
+        }
+        
+        return true;
     }
     
     private void setupEventHandlers() {
