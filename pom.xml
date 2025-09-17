@@ -24,7 +24,7 @@
         <junit.version>5.9.2</junit.version>
     </properties>
 
-    <!-- Repositórios para garantir download das dependências -->
+    <!-- Repositório principal -->
     <repositories>
         <repository>
             <id>central</id>
@@ -34,11 +34,6 @@
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </repository>
-        <repository>
-            <id>maven-central</id>
-            <name>Maven Central</name>
-            <url>https://central.sonatype.com/artifact/</url>
         </repository>
     </repositories>
 
@@ -67,11 +62,11 @@
             <version>${sqlite.version}</version>
         </dependency>
         
-        <!-- BCrypt para hash de senhas - versão alternativa funcional -->
+        <!-- BCrypt para hash de senhas -->
         <dependency>
             <groupId>org.mindrot</groupId>
             <artifactId>jbcrypt</artifactId>
-            <version>0.4</version>
+            <version>${jbcrypt.version}</version>
         </dependency>
         
         <!-- JUnit para testes -->
@@ -167,7 +162,7 @@
                     <execution>
                         <id>run-client</id>
                         <configuration>
-                            <mainClass>com.newpix.client.gui.LoginGUI</mainClass>
+                            <mainClass>com.newpix.client.gui.LoginWindow</mainClass>
                         </configuration>
                     </execution>
                 </executions>
@@ -201,7 +196,7 @@
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
                         <configuration>
-                            <mainClass>com.newpix.client.gui.LoginGUI</mainClass>
+                            <mainClass>com.newpix.client.gui.LoginWindow</mainClass>
                             <options>
                                 <option>-Djava.awt.headless=false</option>
                             </options>

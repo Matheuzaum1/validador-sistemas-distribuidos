@@ -162,4 +162,27 @@ public class UsuarioService {
     public Usuario buscarPorCpf(String cpf) throws SQLException {
         return usuarioDAO.buscarPorCpf(cpf);
     }
+    
+    /**
+     * Realiza depósito na conta do usuário.
+     */
+    public boolean depositar(String token, double quantidade) throws SQLException {
+        if (quantidade <= 0) {
+            return false; // Valor inválido
+        }
+        
+        String cpfUsuario = sessaoDAO.getCpfUsuarioPorToken(token);
+        if (cpfUsuario == null) {
+            return false; // Token inválido
+        }
+        
+        Usuario usuario = usuarioDAO.buscarPorCpf(cpfUsuario);
+        if (usuario == null) {
+            return false; // Usuário não encontrado
+        }
+        
+        // Atualizar saldo
+        double novoSaldo = usuario.getSaldo() + quantidade;
+        return usuarioDAO.atualizarSaldo(cpfUsuario, novoSaldo);
+    }
 }

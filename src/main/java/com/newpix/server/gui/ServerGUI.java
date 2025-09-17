@@ -20,7 +20,6 @@ import java.awt.event.WindowEvent;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.net.SocketException;
 import java.util.*;
 import java.util.List;
 
@@ -38,8 +37,7 @@ public class ServerGUI extends JFrame {
     private JLabel serverIpLabel;
     private boolean serverRunning = false;
     
-    // Banco de dados
-    private DatabaseManager dbManager;
+    // DAO instances
     private UsuarioDAO usuarioDAO;
     private TransacaoDAO transacaoDAO;
     
@@ -61,7 +59,6 @@ public class ServerGUI extends JFrame {
     
     public ServerGUI() {
         // Inicializar DAOs
-        this.dbManager = DatabaseManager.getInstance();
         this.usuarioDAO = new UsuarioDAO();
         this.transacaoDAO = new TransacaoDAO();
         
@@ -72,37 +69,30 @@ public class ServerGUI extends JFrame {
     }
     
     private void initializeComponents() {
-        // Aplicar tema NewPix
-        NewPixTheme.applyTheme();
-        
-        setTitle("[SERVER] NewPix Server - Sistema Bancário Distribuído");
+        // Aplicar tema moderno
+        setTitle("NewPix Banking Server - Console Administrativo");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(900, 700);
+        setSize(1100, 800);
         setLocationRelativeTo(null);
-        setBackground(NewPixTheme.BACKGROUND_LIGHT);
         
-        // Componentes com tema
-        startButton = NewPixTheme.createStyledButton("INICIAR SERVIDOR", NewPixTheme.ButtonStyle.SECONDARY);
-        startButton.setBackground(NewPixTheme.BACKGROUND_CARD);
-        startButton.setForeground(Color.BLACK);
-        startButton.setOpaque(true);
-        startButton.setBorderPainted(true);
-        startButton.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        // Tema moderno com gradiente
+        getContentPane().setBackground(new Color(248, 249, 250));
         
-        stopButton = NewPixTheme.createStyledButton("PARAR SERVIDOR", NewPixTheme.ButtonStyle.SECONDARY);
-        stopButton.setBackground(NewPixTheme.BACKGROUND_CARD);
-        stopButton.setForeground(Color.BLACK);
-        stopButton.setOpaque(true);
-        stopButton.setBorderPainted(true);
-        stopButton.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        // Botões modernos com gradiente e texto compatível
+        startButton = createModernButton("INICIAR SERVIDOR", new Color(40, 167, 69), new Color(32, 134, 55));
+        stopButton = createModernButton("PARAR SERVIDOR", new Color(220, 53, 69), new Color(200, 35, 51));
         stopButton.setEnabled(false);
         
+        // Área de logs moderna com tema dark
         logArea = new JTextArea(25, 60);
         logArea.setEditable(false);
-        logArea.setFont(new Font("Consolas", Font.PLAIN, 12)); // Fonte monospaced para logs
-        logArea.setBackground(NewPixTheme.BACKGROUND_CARD);
-        logArea.setForeground(NewPixTheme.TEXT_PRIMARY);
-        logArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        logArea.setFont(new Font("JetBrains Mono", Font.PLAIN, 12));
+        logArea.setBackground(new Color(33, 37, 41));
+        logArea.setForeground(new Color(248, 249, 250));
+        logArea.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(108, 117, 125), 1),
+            BorderFactory.createEmptyBorder(12, 15, 12, 15)
+        ));
         
         // Configurar codificação UTF-8
         try {
@@ -111,23 +101,23 @@ public class ServerGUI extends JFrame {
             // Fallback silencioso
         }
         
+        // Campo de porta moderno
         portField = new JTextField("8080", 10);
-        portField.setFont(NewPixTheme.FONT_BODY);
-        portField.setBackground(NewPixTheme.BACKGROUND_CARD);
-        portField.setForeground(NewPixTheme.TEXT_PRIMARY);
-        portField.setBorder(BorderFactory.createLineBorder(NewPixTheme.PRIMARY_COLOR, 1));
+        portField.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        portField.setBackground(Color.WHITE);
+        portField.setForeground(Color.BLACK);
+        portField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(0, 123, 255), 2),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
         
-        statusLabel = NewPixTheme.createStatusLabel("STATUS: Servidor Parado", NewPixTheme.StatusType.ERROR);
-        statusLabel.setForeground(NewPixTheme.ERROR_COLOR);
-        statusLabel.setOpaque(true);
-        statusLabel.setBackground(NewPixTheme.BACKGROUND_CARD);
+        // Labels modernos com texto compatível
+        statusLabel = createModernStatusLabel("STATUS: Servidor Parado", new Color(220, 53, 69));
         
-        // Label para mostrar IP do servidor
-        serverIpLabel = new JLabel("IP do Servidor: " + getServerIPAddress());
-        serverIpLabel.setFont(NewPixTheme.FONT_BODY);
-        serverIpLabel.setForeground(NewPixTheme.TEXT_PRIMARY);
-        serverIpLabel.setOpaque(true);
-        serverIpLabel.setBackground(NewPixTheme.BACKGROUND_CARD);
+        // Obter IP e criar label com debug
+        String serverIP = getServerIPAddress();
+        System.out.println("IP para exibição na GUI: " + serverIP);
+        serverIpLabel = createModernInfoLabel("IP do Servidor: " + serverIP);
         
         // Inicializar componentes da tabela de dispositivos
         initializeDevicesTable();
@@ -142,7 +132,7 @@ public class ServerGUI extends JFrame {
         
         // Panel superior - controles
         JPanel controlPanel = NewPixTheme.createCard();
-        controlPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 15, 10));
+        controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.Y_AXIS));
         controlPanel.setBackground(NewPixTheme.BACKGROUND_CARD);
         controlPanel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createTitledBorder(null, "[CONFIG] Controles do Servidor", 
@@ -150,39 +140,47 @@ public class ServerGUI extends JFrame {
             BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
         
+        // Primeira linha: Porta e botões
+        JPanel firstRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5));
+        firstRow.setOpaque(false);
+        
         JLabel portLabel = new JLabel("Porta:");
         portLabel.setFont(NewPixTheme.FONT_BODY);
         portLabel.setForeground(NewPixTheme.TEXT_PRIMARY);
         portLabel.setOpaque(true);
         portLabel.setBackground(NewPixTheme.BACKGROUND_CARD);
         
-        controlPanel.add(portLabel);
-        controlPanel.add(portField);
-        controlPanel.add(Box.createHorizontalStrut(10));
-        controlPanel.add(startButton);
-        controlPanel.add(stopButton);
-        controlPanel.add(Box.createHorizontalStrut(20));
-        controlPanel.add(statusLabel);
-        controlPanel.add(Box.createHorizontalStrut(20));
-        controlPanel.add(serverIpLabel);
+        firstRow.add(portLabel);
+        firstRow.add(portField);
+        firstRow.add(Box.createHorizontalStrut(10));
+        firstRow.add(startButton);
+        firstRow.add(stopButton);
         
-        // Criar painel com abas
-        tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(NewPixTheme.FONT_BODY);
-        tabbedPane.setBackground(NewPixTheme.BACKGROUND_LIGHT);
-        tabbedPane.setForeground(NewPixTheme.TEXT_PRIMARY);
+        // Segunda linha: Status e IP
+        JPanel secondRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5));
+        secondRow.setOpaque(false);
+        secondRow.add(statusLabel);
+        secondRow.add(Box.createHorizontalStrut(20));
+        secondRow.add(serverIpLabel);
+        
+        controlPanel.add(firstRow);
+        controlPanel.add(Box.createVerticalStrut(5));
+        controlPanel.add(secondRow);
+        
+        // Criar painel com abas moderno
+        tabbedPane = createModernTabbedPane();
         
         // Aba 1: Logs do Sistema
         JPanel logPanel = createLogPanel();
-        tabbedPane.addTab("[LOGS] Sistema", logPanel);
+        tabbedPane.addTab("Sistema", logPanel);
         
         // Aba 2: Dispositivos Conectados
         JPanel devicesPanel = createDevicesPanel();
-        tabbedPane.addTab("[DEVICES] Conectados", devicesPanel);
+        tabbedPane.addTab("Conectados", devicesPanel);
         
         // Aba 3: Explorador de Banco de Dados
         JPanel databasePanel = createDatabasePanel();
-        tabbedPane.addTab("[DATABASE] Banco de Dados", databasePanel);
+        tabbedPane.addTab("Database", databasePanel);
         
         // Panel inferior - informações
         JPanel infoPanel = NewPixTheme.createCard();
@@ -214,43 +212,117 @@ public class ServerGUI extends JFrame {
     }
     
     private JPanel createLogPanel() {
-        JPanel logPanel = NewPixTheme.createCard();
+        JPanel logPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Fundo escuro tipo terminal
+                g2.setColor(new Color(45, 45, 45));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                
+                g2.dispose();
+            }
+        };
+        
         logPanel.setLayout(new BorderLayout());
         logPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder(null, "[LOGS] Logs do Sistema", 
-                0, 0, NewPixTheme.FONT_SUBTITLE, NewPixTheme.TEXT_PRIMARY),
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+            BorderFactory.createLineBorder(new Color(0, 123, 255), 2),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
+        
+        // Header do terminal
+        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        headerPanel.setOpaque(false);
+        
+        JLabel terminalLabel = new JLabel("Terminal do Servidor");
+        terminalLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        terminalLabel.setForeground(Color.WHITE);
+        headerPanel.add(terminalLabel);
+        
+        // Configurar logArea com aparência de terminal
+        logArea.setBackground(new Color(30, 30, 30));
+        logArea.setForeground(new Color(0, 255, 0));
+        logArea.setFont(new Font("JetBrains Mono", Font.PLAIN, 12));
+        logArea.setCaretColor(new Color(0, 255, 0));
+        logArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
         JScrollPane scrollPane = new JScrollPane(logArea);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setBackground(new Color(30, 30, 30));
+        
+        // Customizar scrollbar
+        scrollPane.getVerticalScrollBar().setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
+            @Override
+            protected void configureScrollBarColors() {
+                this.thumbColor = new Color(0, 123, 255);
+                this.trackColor = new Color(45, 45, 45);
+            }
+        });
+        
+        logPanel.add(headerPanel, BorderLayout.NORTH);
         logPanel.add(scrollPane, BorderLayout.CENTER);
         
         return logPanel;
     }
     
     private JPanel createDevicesPanel() {
-        JPanel devicesPanel = NewPixTheme.createCard();
+        JPanel devicesPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Fundo com gradiente sutil
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, Color.WHITE,
+                    0, getHeight(), new Color(248, 249, 250)
+                );
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                
+                g2.dispose();
+            }
+        };
+        
         devicesPanel.setLayout(new BorderLayout());
         devicesPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder(null, "[CONEXÕES] Dispositivos Conectados", 
-                0, 0, NewPixTheme.FONT_SUBTITLE, NewPixTheme.TEXT_PRIMARY),
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+            BorderFactory.createLineBorder(new Color(0, 123, 255), 2),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
         
-        // Painel superior com informações
+        // Painel superior com informações modernas
         JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        headerPanel.setBackground(NewPixTheme.BACKGROUND_CARD);
+        headerPanel.setOpaque(false);
         
-        JLabel connectedLabel = new JLabel("Dispositivos atualmente conectados ao servidor:");
-        connectedLabel.setFont(NewPixTheme.FONT_BODY);
-        connectedLabel.setForeground(NewPixTheme.TEXT_PRIMARY);
+        JLabel connectedLabel = new JLabel("Dispositivos Conectados em Tempo Real");
+        connectedLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        connectedLabel.setForeground(Color.BLACK);
         headerPanel.add(connectedLabel);
+        
+        // Configurar tabela com aparência moderna
+        devicesTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        devicesTable.setBackground(Color.WHITE);
+        devicesTable.setForeground(Color.BLACK);
+        devicesTable.setSelectionBackground(new Color(0, 123, 255, 50));
+        devicesTable.setSelectionForeground(Color.BLACK);
+        devicesTable.setRowHeight(25);
+        devicesTable.setShowGrid(true);
+        devicesTable.setGridColor(new Color(233, 236, 239));
+        
+        // Header da tabela
+        devicesTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        devicesTable.getTableHeader().setBackground(new Color(0, 123, 255));
+        devicesTable.getTableHeader().setForeground(Color.WHITE);
+        devicesTable.getTableHeader().setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
         
         // Tabela com scroll
         JScrollPane tableScrollPane = new JScrollPane(devicesTable);
         tableScrollPane.setBorder(BorderFactory.createEmptyBorder());
-        tableScrollPane.setBackground(NewPixTheme.BACKGROUND_CARD);
+        tableScrollPane.setBackground(Color.WHITE);
         
         devicesPanel.add(headerPanel, BorderLayout.NORTH);
         devicesPanel.add(tableScrollPane, BorderLayout.CENTER);
@@ -259,39 +331,78 @@ public class ServerGUI extends JFrame {
     }
     
     private JPanel createDatabasePanel() {
-        JPanel databasePanel = NewPixTheme.createCard();
+        JPanel databasePanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Fundo com gradiente sutil
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, Color.WHITE,
+                    0, getHeight(), new Color(248, 249, 250)
+                );
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                
+                g2.dispose();
+            }
+        };
+        
         databasePanel.setLayout(new BorderLayout());
         databasePanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder(null, "[DATABASE] Explorador do Banco de Dados", 
-                0, 0, NewPixTheme.FONT_SUBTITLE, NewPixTheme.TEXT_PRIMARY),
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+            BorderFactory.createLineBorder(new Color(0, 123, 255), 2),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
         
-        // Painel superior com controles
-        JPanel controlsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        controlsPanel.setBackground(NewPixTheme.BACKGROUND_CARD);
+        // Painel superior com controles modernos
+        JPanel controlsPanel = new JPanel();
+        controlsPanel.setLayout(new BoxLayout(controlsPanel, BoxLayout.Y_AXIS));
+        controlsPanel.setOpaque(false);
         
-        // ComboBox para selecionar tabela
+        // Título do painel
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        titlePanel.setOpaque(false);
+        JLabel titleLabel = new JLabel("Explorador do Banco de Dados");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        titleLabel.setForeground(Color.BLACK);
+        titlePanel.add(titleLabel);
+        
+        // Primeira linha - Seleção de tabela
+        JPanel tableSelectPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        tableSelectPanel.setOpaque(false);
+        
         JLabel tableLabel = new JLabel("Tabela:");
-        tableLabel.setFont(NewPixTheme.FONT_BODY);
+        tableLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         tableLabel.setForeground(Color.BLACK);
         
         tableComboBox = new JComboBox<>(new String[]{"usuarios", "transacoes", "sessoes"});
-        tableComboBox.setFont(NewPixTheme.FONT_BODY);
-        tableComboBox.setBackground(NewPixTheme.BACKGROUND_CARD);
+        tableComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tableComboBox.setBackground(Color.WHITE);
         tableComboBox.setForeground(Color.BLACK);
+        tableComboBox.setBorder(BorderFactory.createLineBorder(new Color(0, 123, 255), 1));
         tableComboBox.addActionListener(e -> loadTableData());
         
-        // Campo de busca
+        tableSelectPanel.add(tableLabel);
+        tableSelectPanel.add(Box.createHorizontalStrut(10));
+        tableSelectPanel.add(tableComboBox);
+        
+        // Segunda linha - Busca
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.setOpaque(false);
+        
         JLabel searchLabel = new JLabel("Buscar:");
-        searchLabel.setFont(NewPixTheme.FONT_BODY);
+        searchLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         searchLabel.setForeground(Color.BLACK);
         
-        searchField = new JTextField(15);
-        searchField.setFont(NewPixTheme.FONT_BODY);
-        searchField.setBackground(NewPixTheme.BACKGROUND_CARD);
+        searchField = new JTextField(20);
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        searchField.setBackground(Color.WHITE);
         searchField.setForeground(Color.BLACK);
-        searchField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(0, 123, 255), 1),
+            BorderFactory.createEmptyBorder(5, 8, 5, 8)
+        ));
         
         // Adicionar funcionalidade de busca em tempo real
         searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
@@ -311,40 +422,71 @@ public class ServerGUI extends JFrame {
             }
         });
         
-        // Botões de ação
-        refreshDbButton = createDbButton("ATUALIZAR", Color.BLUE);
-        addButton = createDbButton("ADICIONAR", Color.GREEN);
-        editButton = createDbButton("EDITAR", Color.ORANGE);
-        deleteButton = createDbButton("DELETAR", Color.RED);
-        JButton clearSearchButton = createDbButton("LIMPAR BUSCA", Color.GRAY);
+        JButton clearSearchButton = createModernDbButton("Limpar", new Color(108, 117, 125), new Color(90, 98, 104));
+        clearSearchButton.addActionListener(e -> {
+            searchField.setText("");
+            loadTableData();
+        });
+        
+        searchPanel.add(searchLabel);
+        searchPanel.add(Box.createHorizontalStrut(10));
+        searchPanel.add(searchField);
+        searchPanel.add(Box.createHorizontalStrut(10));
+        searchPanel.add(clearSearchButton);
+        
+        // Terceira linha - Ações
+        JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        actionsPanel.setOpaque(false);
+        
+        refreshDbButton = createModernDbButton("Atualizar", new Color(0, 123, 255), new Color(0, 86, 179));
+        addButton = createModernDbButton("Adicionar", new Color(40, 167, 69), new Color(32, 134, 55));
+        editButton = createModernDbButton("Editar", new Color(255, 193, 7), new Color(227, 172, 6));
+        deleteButton = createModernDbButton("Deletar", new Color(220, 53, 69), new Color(200, 35, 51));
         
         // Adicionar event listeners
         refreshDbButton.addActionListener(e -> loadTableData());
         addButton.addActionListener(e -> showAddDialog());
         editButton.addActionListener(e -> showEditDialog());
         deleteButton.addActionListener(e -> deleteSelectedRow());
-        clearSearchButton.addActionListener(e -> {
-            searchField.setText("");
-            loadTableData();
-        });
         
-        controlsPanel.add(tableLabel);
-        controlsPanel.add(tableComboBox);
-        controlsPanel.add(Box.createHorizontalStrut(20));
-        controlsPanel.add(searchLabel);
-        controlsPanel.add(searchField);
-        controlsPanel.add(clearSearchButton);
-        controlsPanel.add(Box.createHorizontalStrut(20));
-        controlsPanel.add(refreshDbButton);
-        controlsPanel.add(addButton);
-        controlsPanel.add(editButton);
-        controlsPanel.add(deleteButton);
+        actionsPanel.add(refreshDbButton);
+        actionsPanel.add(Box.createHorizontalStrut(5));
+        actionsPanel.add(addButton);
+        actionsPanel.add(Box.createHorizontalStrut(5));
+        actionsPanel.add(editButton);
+        actionsPanel.add(Box.createHorizontalStrut(5));
+        actionsPanel.add(deleteButton);
+        
+        controlsPanel.add(titlePanel);
+        controlsPanel.add(Box.createVerticalStrut(5));
+        controlsPanel.add(tableSelectPanel);
+        controlsPanel.add(Box.createVerticalStrut(5));
+        controlsPanel.add(searchPanel);
+        controlsPanel.add(Box.createVerticalStrut(5));
+        controlsPanel.add(actionsPanel);
         
         // Tabela do banco de dados
         initializeDatabaseTable();
+        
+        // Configurar tabela com aparência moderna
+        databaseTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        databaseTable.setBackground(Color.WHITE);
+        databaseTable.setForeground(Color.BLACK);
+        databaseTable.setSelectionBackground(new Color(0, 123, 255, 50));
+        databaseTable.setSelectionForeground(Color.BLACK);
+        databaseTable.setRowHeight(25);
+        databaseTable.setShowGrid(true);
+        databaseTable.setGridColor(new Color(233, 236, 239));
+        
+        // Header da tabela
+        databaseTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        databaseTable.getTableHeader().setBackground(new Color(0, 123, 255));
+        databaseTable.getTableHeader().setForeground(Color.WHITE);
+        databaseTable.getTableHeader().setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        
         JScrollPane dbScrollPane = new JScrollPane(databaseTable);
         dbScrollPane.setBorder(BorderFactory.createEmptyBorder());
-        dbScrollPane.setBackground(NewPixTheme.BACKGROUND_CARD);
+        dbScrollPane.setBackground(Color.WHITE);
         
         databasePanel.add(controlsPanel, BorderLayout.NORTH);
         databasePanel.add(dbScrollPane, BorderLayout.CENTER);
@@ -1229,6 +1371,185 @@ public class ServerGUI extends JFrame {
                 logArea.append("Servidor parado - tabela de dispositivos limpa\n");
             }
         }
+    }
+    
+    /**
+     * Cria um botão moderno com gradiente e efeitos visuais.
+     */
+    private JButton createModernButton(String text, Color color1, Color color2) {
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Gradiente vertical
+                GradientPaint gradient = new GradientPaint(0, 0, color1, 0, getHeight(), color2);
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                
+                // Texto centralizado
+                g2.setColor(Color.WHITE);
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(getText())) / 2;
+                int y = (getHeight() + fm.getAscent()) / 2 - 2;
+                g2.drawString(getText(), x, y);
+                
+                g2.dispose();
+            }
+        };
+        
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setForeground(Color.WHITE);
+        button.setOpaque(false);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setPreferredSize(new Dimension(160, 40));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        // Efeito hover
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
+            }
+            
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBorder(null);
+            }
+        });
+        
+        return button;
+    }
+    
+    /**
+     * Cria um label de status moderno.
+     */
+    private JLabel createModernStatusLabel(String text, Color color) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        label.setForeground(Color.BLACK);
+        label.setOpaque(true);
+        label.setBackground(Color.WHITE);
+        label.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(color, 2),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        return label;
+    }
+    
+    /**
+     * Cria um label de informação moderno.
+     */
+    private JLabel createModernInfoLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        label.setForeground(Color.BLACK);
+        label.setOpaque(true);
+        label.setBackground(new Color(233, 236, 239));
+        label.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(108, 117, 125), 1),
+            BorderFactory.createEmptyBorder(6, 12, 6, 12)
+        ));
+        
+        // Garantir tamanho mínimo para exibir o IP completo
+        label.setMinimumSize(new Dimension(200, 30));
+        label.setPreferredSize(new Dimension(220, 30));
+        
+        return label;
+    }
+    
+    /**
+     * Cria um JTabbedPane moderno com visual aprimorado.
+     */
+    private JTabbedPane createModernTabbedPane() {
+        JTabbedPane tabbedPane = new JTabbedPane() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Fundo com gradiente sutil
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, new Color(248, 249, 250),
+                    0, getHeight(), new Color(233, 236, 239)
+                );
+                g2.setPaint(gradient);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        
+        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        tabbedPane.setBackground(new Color(248, 249, 250));
+        tabbedPane.setForeground(Color.BLACK);
+        tabbedPane.setTabPlacement(JTabbedPane.TOP);
+        tabbedPane.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        // Customizar aparência das abas
+        UIManager.put("TabbedPane.selected", new Color(0, 123, 255));
+        UIManager.put("TabbedPane.background", new Color(248, 249, 250));
+        UIManager.put("TabbedPane.foreground", Color.BLACK);
+        UIManager.put("TabbedPane.selectedForeground", Color.WHITE);
+        
+        return tabbedPane;
+    }
+    
+    /**
+     * Cria um botão moderno para o painel de banco de dados.
+     */
+    private JButton createModernDbButton(String text, Color color1, Color color2) {
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Gradiente vertical
+                GradientPaint gradient = new GradientPaint(0, 0, color1, 0, getHeight(), color2);
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                
+                // Texto centralizado
+                g2.setColor(Color.WHITE);
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(getText())) / 2;
+                int y = (getHeight() + fm.getAscent()) / 2 - 2;
+                g2.drawString(getText(), x, y);
+                
+                g2.dispose();
+            }
+        };
+        
+        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        button.setForeground(Color.WHITE);
+        button.setOpaque(false);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setPreferredSize(new Dimension(110, 32));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        // Efeito hover
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBorder(BorderFactory.createLineBorder(Color.WHITE, 1));
+            }
+            
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBorder(null);
+            }
+        });
+        
+        return button;
     }
 
     public static void main(String[] args) {

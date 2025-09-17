@@ -365,7 +365,7 @@ public class NewPixClient {
     public boolean realizarDeposito(String token, double valor) {
         try {
             String request = String.format(
-                "{\"operacao\":\"usuario_depositar\",\"token\":\"%s\",\"valor\":%.2f}", 
+                "{\"operacao\":\"depositar\",\"token\":\"%s\",\"quantidade\":%.2f}", 
                 token, valor
             );
             
@@ -384,7 +384,7 @@ public class NewPixClient {
     public String realizarDepositoComMensagem(String token, double valor) {
         try {
             String request = String.format(
-                "{\"operacao\":\"usuario_depositar\",\"token\":\"%s\",\"valor\":%.2f}", 
+                "{\"operacao\":\"depositar\",\"token\":\"%s\",\"quantidade\":%.2f}", 
                 token, valor
             );
             

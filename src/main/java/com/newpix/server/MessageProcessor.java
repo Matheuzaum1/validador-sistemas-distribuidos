@@ -47,6 +47,7 @@ public class MessageProcessor {
                 case "usuario_ler" -> processUsuarioLer(rootNode);
                 case "usuario_atualizar" -> processUsuarioAtualizar(rootNode);
                 case "usuario_deletar" -> processUsuarioDeletar(rootNode);
+                case "depositar" -> processDepositar(rootNode);
                 case "transacao_criar" -> processTransacaoCriar(rootNode);
                 case "transacao_ler" -> processTransacaoLer(rootNode);
                 default -> createErrorResponse(operacao, "Operacao nao suportada");
@@ -191,6 +192,25 @@ public class MessageProcessor {
             
         } catch (Exception e) {
             return createErrorResponse("usuario_deletar", "Erro ao deletar usuario: " + e.getMessage());
+        }
+    }
+    
+    private String processDepositar(JsonNode rootNode) {
+        try {
+            String token = rootNode.get("token").asText();
+            double quantidade = rootNode.get("quantidade").asDouble();
+            
+            boolean sucesso = usuarioService.depositar(token, quantidade);
+            
+            ObjectNode response = objectMapper.createObjectNode();
+            response.put("operacao", "depositar");
+            response.put("status", sucesso);
+            response.put("info", sucesso ? "Deposito realizado com sucesso." : "Erro ao realizar deposito.");
+            
+            return objectMapper.writeValueAsString(response);
+            
+        } catch (Exception e) {
+            return createErrorResponse("depositar", "Erro ao processar deposito: " + e.getMessage());
         }
     }
     

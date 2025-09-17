@@ -4,6 +4,7 @@ function Show-Header {
     Clear-Host
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host "          NEWPIX BANKING SYSTEM               " -ForegroundColor Cyan  
+    Write-Host "         v2025.09.17 - Atualizado             " -ForegroundColor Green
     Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host ""
 }
@@ -36,6 +37,28 @@ function Test-Maven {
     return $false
 }
 
+function Test-Classes {
+    $serverClass = "target\classes\com\newpix\server\gui\ServerGUI.class"
+    $clientClass = "target\classes\com\newpix\client\gui\LoginWindow.class"
+    
+    $serverOK = Test-Path $serverClass
+    $clientOK = Test-Path $clientClass
+    
+    if ($serverOK) {
+        Write-Host "Servidor GUI: OK" -ForegroundColor Green
+    } else {
+        Write-Host "Servidor GUI: CLASSE NAO ENCONTRADA" -ForegroundColor Red
+    }
+    
+    if ($clientOK) {
+        Write-Host "Cliente GUI: OK" -ForegroundColor Green  
+    } else {
+        Write-Host "Cliente GUI: CLASSE NAO ENCONTRADA" -ForegroundColor Red
+    }
+    
+    return ($serverOK -and $clientOK)
+}
+
 function Get-Status {
     Show-Header
     Write-Host "STATUS DO SISTEMA:" -ForegroundColor Yellow
@@ -47,6 +70,7 @@ function Get-Status {
     
     if (Test-Path "target/classes") {
         Write-Host "Build: OK" -ForegroundColor Green
+        Test-Classes
     } else {
         Write-Host "Build: NECESSARIO COMPILAR" -ForegroundColor Yellow
     }
@@ -98,6 +122,14 @@ function Start-Clean {
 
 function Start-ServerGUI {
     Write-Host "Iniciando GUI do Servidor..." -ForegroundColor Yellow
+    
+    $serverClass = "target\classes\com\newpix\server\gui\ServerGUI.class"
+    if (!(Test-Path $serverClass)) {
+        Write-Host "Erro: Classe do servidor nao encontrada!" -ForegroundColor Red
+        Write-Host "Execute 'build' primeiro." -ForegroundColor Yellow
+        return
+    }
+    
     $classpath = Get-ClassPath
     Start-Process java -ArgumentList "-cp", $classpath, "com.newpix.server.gui.ServerGUI" -WindowStyle Normal
     Write-Host "Servidor GUI iniciado!" -ForegroundColor Green
@@ -105,6 +137,14 @@ function Start-ServerGUI {
 
 function Start-ClientGUI {
     Write-Host "Iniciando GUI do Cliente..." -ForegroundColor Yellow
+    
+    $clientClass = "target\classes\com\newpix\client\gui\LoginWindow.class"
+    if (!(Test-Path $clientClass)) {
+        Write-Host "Erro: Classe do cliente nao encontrada!" -ForegroundColor Red
+        Write-Host "Execute 'build' primeiro." -ForegroundColor Yellow
+        return
+    }
+    
     $classpath = Get-ClassPath
     Start-Process java -ArgumentList "-cp", $classpath, "com.newpix.client.gui.LoginWindow" -WindowStyle Normal
     Write-Host "Cliente GUI iniciado!" -ForegroundColor Green
@@ -118,6 +158,14 @@ function Start-BothGUI {
     if (!(Test-Path "target/classes")) {
         Write-Host "Projeto nao compilado. Compilando..." -ForegroundColor Yellow
         Start-Build
+        Write-Host ""
+    }
+    
+    # Verificar se as classes existem
+    if (!(Test-Classes)) {
+        Write-Host "Erro: Classes necessarias nao encontradas!" -ForegroundColor Red
+        Write-Host "Execute 'build' para compilar o projeto." -ForegroundColor Yellow
+        return
     }
     
     Write-Host "1/2 - Iniciando GUI do Servidor..." -ForegroundColor Yellow
@@ -158,10 +206,12 @@ function Show-Menu {
         Write-Host "5. Compilar"
         Write-Host "6. Limpar Projeto"
         Write-Host "7. Parar Servicos"
+        Write-Host "8. Testar Sistema"
+        Write-Host "9. Ver Mudancas (Changelog)"
         Write-Host "0. Sair"
         Write-Host ""
         
-        $choice = Read-Host "Digite sua escolha (0-7)"
+        $choice = Read-Host "Digite sua escolha (0-9)"
         
         switch ($choice) {
             "1" { Start-BothGUI; break }
@@ -171,10 +221,58 @@ function Show-Menu {
             "5" { Start-Build; Read-Host "Pressione ENTER para continuar" }
             "6" { Start-Clean; Read-Host "Pressione ENTER para continuar" }
             "7" { Stop-Services; Read-Host "Pressione ENTER para continuar" }
+            "8" { Test-System; Read-Host "Pressione ENTER para continuar" }
+            "9" { Show-Changelog; Read-Host "Pressione ENTER para continuar" }
             "0" { Write-Host "Ate logo!" -ForegroundColor Green; exit }
-            default { Write-Host "Opcao invalida! Digite um numero de 0-7." -ForegroundColor Red; Start-Sleep 1 }
+            default { Write-Host "Opcao invalida! Digite um numero de 0-9." -ForegroundColor Red; Start-Sleep 1 }
         }
     } while ($choice -ne "0")
+}
+
+function Test-System {
+    Show-Header
+    Write-Host "TESTE DO SISTEMA:" -ForegroundColor Yellow
+    Write-Host "=================" -ForegroundColor Yellow
+    Write-Host ""
+    
+    Write-Host "Verificando pre-requisitos..." -ForegroundColor Cyan
+    
+    $javaOK = Test-Java
+    $mavenOK = Test-Maven
+    
+    if (!$javaOK -or !$mavenOK) {
+        Write-Host ""
+        Write-Host "ERRO: Pre-requisitos nao atendidos!" -ForegroundColor Red
+        return
+    }
+    
+    Write-Host ""
+    Write-Host "Verificando compilacao..." -ForegroundColor Cyan
+    
+    if (!(Test-Path "target/classes")) {
+        Write-Host "Projeto nao compilado. Compilando agora..." -ForegroundColor Yellow
+        Start-Build
+    }
+    
+    Write-Host ""
+    Write-Host "Verificando classes principais..." -ForegroundColor Cyan
+    
+    $classesOK = Test-Classes
+    
+    Write-Host ""
+    if ($classesOK) {
+        Write-Host "RESULTADO: Sistema pronto para execucao!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Proximos passos:" -ForegroundColor Yellow
+        Write-Host "1. Execute 'Sistema Completo' para iniciar servidor e cliente"
+        Write-Host "2. Ou execute servidor e cliente separadamente"
+    } else {
+        Write-Host "RESULTADO: Sistema com problemas!" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "Solucoes:" -ForegroundColor Yellow
+        Write-Host "1. Execute 'Limpar Projeto' e depois 'Compilar'"
+        Write-Host "2. Verifique se todos os arquivos fonte estao presentes"
+    }
 }
 
 function Show-Help {
@@ -190,7 +288,46 @@ function Show-Help {
     Write-Host "  .\newpix.ps1 build      - Compilar projeto"
     Write-Host "  .\newpix.ps1 clean      - Limpar projeto"
     Write-Host "  .\newpix.ps1 stop       - Parar servicos"
+    Write-Host "  .\newpix.ps1 test       - Testar sistema"
+    Write-Host "  .\newpix.ps1 changelog  - Ver mudancas recentes"
     Write-Host "  .\newpix.ps1 help       - Esta ajuda"
+    Write-Host ""
+    Write-Host "CLASSES PRINCIPAIS:" -ForegroundColor Yellow
+    Write-Host "  Servidor: com.newpix.server.gui.ServerGUI"
+    Write-Host "  Cliente:  com.newpix.client.gui.LoginWindow"
+    Write-Host ""
+}
+
+function Show-Changelog {
+    Show-Header
+    Write-Host "CHANGELOG - Correcoes Implementadas" -ForegroundColor Cyan
+    Write-Host "====================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "VERSAO ATUAL - 17/09/2025:" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  CORRECOES PRINCIPAIS:" -ForegroundColor Yellow
+    Write-Host "  - Operacao 'depositar' implementada no servidor" -ForegroundColor Green
+    Write-Host "  - Cliente corrigido para usar protocolo JSON correto" -ForegroundColor Green
+    Write-Host "  - Parametro 'quantidade' conforme documentacao" -ForegroundColor Green
+    Write-Host "  - Loop infinito no carregamento de dados corrigido" -ForegroundColor Green
+    Write-Host "  - Sistema de tentativas com limite (max 3)" -ForegroundColor Green
+    Write-Host "  - Feedback visual melhorado" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  CONFORMIDADE:" -ForegroundColor Yellow
+    Write-Host "  - Todas operacoes seguem docs/Requisitos.md" -ForegroundColor Green
+    Write-Host "  - Protocolo JSON com nomenclatura minuscula + '_'" -ForegroundColor Green
+    Write-Host "  - Operacoes: usuario_*, depositar, transacao_*" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  MELHORIAS UX:" -ForegroundColor Yellow
+    Write-Host "  - Pagina de configuracoes estabilizada" -ForegroundColor Green
+    Write-Host "  - Controle robusto de erros de conexao" -ForegroundColor Green
+    Write-Host "  - Interface mais responsiva" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  TECNOLOGIAS:" -ForegroundColor Yellow
+    Write-Host "  - Java 17+ com Maven" -ForegroundColor White
+    Write-Host "  - SQLite database" -ForegroundColor White
+    Write-Host "  - Comunicacao via Socket JSON" -ForegroundColor White
+    Write-Host "  - Interface Swing moderna" -ForegroundColor White
     Write-Host ""
 }
 
@@ -205,6 +342,8 @@ switch ($Action.ToLower()) {
     "build"      { Start-Build }
     "clean"      { Start-Clean }
     "stop"       { Stop-Services }
+    "test"       { Test-System }
+    "changelog"  { Show-Changelog }
     "help"       { Show-Help }
     default      { Show-Menu }
 }

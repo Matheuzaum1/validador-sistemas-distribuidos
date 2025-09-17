@@ -49,11 +49,6 @@ public class MainGUI extends JFrame {
     private JPasswordField novaSenhaField;
     private JLabel alertLabel; // Para alertas tipo PHP
     
-    // Componentes para dispositivos conectados
-    private JTable dispositivosTable;
-    private DefaultTableModel dispositivosTableModel;
-    private JButton atualizarDispositivosButton;
-    
     // Componentes para configurações de conexão
     private JTextField configHostField;
     private JTextField configPortField;
@@ -61,6 +56,10 @@ public class MainGUI extends JFrame {
     private JButton salvarConfigButton;
     
     private DecimalFormat currencyFormat = new DecimalFormat("R$ #,##0.00");
+    
+    // Controle de tentativas de carregamento
+    private int tentativasCarregamento = 0;
+    private static final int MAX_TENTATIVAS_CARREGAMENTO = 3;
     
     public MainGUI(NewPixClient client, String token) {
         this.client = client;
@@ -73,35 +72,33 @@ public class MainGUI extends JFrame {
     }
     
     private void initializeComponents() {
-        // Aplicar tema
-        NewPixTheme.applyTheme();
-        
-        setTitle(NewPixTheme.Icons.MONEY + " NewPix - Sistema Bancário");
+        setTitle("NewPix - Sistema Bancário");
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setSize(900, 700);
+        setSize(1000, 800);
         setLocationRelativeTo(null);
-        setBackground(NewPixTheme.BACKGROUND_LIGHT);
+        getContentPane().setBackground(new Color(248, 249, 250));
         
-        // Labels de informação do usuário
-        nomeLabel = NewPixTheme.createTitle("Nome: Carregando...");
+        // Labels de informação do usuário modernos
+        nomeLabel = new JLabel("Nome: Carregando...");
+        nomeLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        nomeLabel.setForeground(Color.BLACK);
+        
         cpfLabel = new JLabel("CPF: Carregando...");
-        cpfLabel.setFont(NewPixTheme.FONT_BODY);
-        cpfLabel.setForeground(NewPixTheme.TEXT_SECONDARY);
+        cpfLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        cpfLabel.setForeground(new Color(108, 117, 125));
         
         saldoLabel = new JLabel("Saldo: Carregando...");
-        saldoLabel.setFont(NewPixTheme.FONT_TITLE);
-        saldoLabel.setForeground(NewPixTheme.SUCCESS_COLOR);
+        saldoLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        saldoLabel.setForeground(new Color(40, 167, 69));
         
-        // Campos para PIX
-        valorPixField = new JTextField(15);
-        cpfDestinoField = new JTextField(20);
-        pixButton = NewPixTheme.createStyledButton(NewPixTheme.Icons.SEND + " Enviar PIX", NewPixTheme.ButtonStyle.PRIMARY);
+        // Campos para PIX modernos
+        valorPixField = createModernTextField(15);
+        cpfDestinoField = createModernTextField(20);
+        pixButton = createModernButton("Enviar PIX", new Color(0, 123, 255), new Color(0, 86, 179));
         
-        // Campos para depósito
-        valorDepositoField = new JTextField(15);
-        depositoButton = new JButton("Fazer Depósito");
-        depositoButton.setBackground(new Color(34, 139, 34));
-        depositoButton.setForeground(Color.WHITE);
+        // Campos para depósito modernos
+        valorDepositoField = createModernTextField(15);
+        depositoButton = createModernButton("Fazer Depósito", new Color(40, 167, 69), new Color(32, 134, 55));
         
         // Label para alertas (tipo PHP)
         alertLabel = new JLabel(" ");
@@ -111,14 +108,22 @@ public class MainGUI extends JFrame {
         alertLabel.setOpaque(true);
         alertLabel.setVisible(false);
         
-        // Campos para atualização de dados
-        novoNomeField = new JTextField(20);
+        // Campos para atualização de dados modernos
+        novoNomeField = createModernTextField(20);
         novaSenhaField = new JPasswordField(20);
-        atualizarButton = NewPixTheme.createStyledButton(NewPixTheme.Icons.SETTINGS + " Atualizar Dados", NewPixTheme.ButtonStyle.SUCCESS);
+        novaSenhaField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        novaSenhaField.setBackground(Color.WHITE);
+        novaSenhaField.setForeground(Color.BLACK);
+        novaSenhaField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(108, 117, 125), 1),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
         
-        // Botões de ação
-        extratoButton = NewPixTheme.createStyledButton(NewPixTheme.Icons.REFRESH + " Atualizar Extrato", NewPixTheme.ButtonStyle.PRIMARY);
-        logoutButton = NewPixTheme.createStyledButton(NewPixTheme.Icons.LOGOUT + " Logout", NewPixTheme.ButtonStyle.ERROR);
+        atualizarButton = createModernButton("Atualizar Dados", new Color(255, 193, 7), new Color(227, 172, 6));
+        
+        // Botões de ação modernos
+        extratoButton = createModernButton("Atualizar Extrato", new Color(0, 123, 255), new Color(0, 86, 179));
+        logoutButton = createModernButton("Logout", new Color(220, 53, 69), new Color(200, 35, 51));
         
         // Tabela de extrato
         String[] columns = {"Data", "Tipo", "Valor", "Origem/Destino"};
@@ -129,64 +134,73 @@ public class MainGUI extends JFrame {
             }
         };
         extratoTable = new JTable(tableModel);
-        extratoTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         
-        // Tabela de dispositivos conectados
-        String[] dispositivosColumns = {"IP", "Porta", "Nome/ID", "Status", "Último Acesso"};
-        dispositivosTableModel = new DefaultTableModel(dispositivosColumns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        dispositivosTable = new JTable(dispositivosTableModel);
-        dispositivosTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        // Configurar tabela de extrato
+        extratoTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        extratoTable.setBackground(Color.WHITE);
+        extratoTable.setForeground(Color.BLACK);
+        extratoTable.setSelectionBackground(new Color(0, 123, 255, 50));
+        extratoTable.setSelectionForeground(Color.BLACK);
+        extratoTable.setRowHeight(25);
+        extratoTable.setShowGrid(true);
+        extratoTable.setGridColor(new Color(233, 236, 239));
         
-        // Botão para atualizar dispositivos
-        atualizarDispositivosButton = new JButton("Atualizar Dispositivos");
+        // Header da tabela de extrato
+        extratoTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        extratoTable.getTableHeader().setBackground(new Color(0, 123, 255));
+        extratoTable.getTableHeader().setForeground(Color.WHITE);
         
-        // Componentes de configuração de conexão
-        configHostField = new JTextField(20);
-        configPortField = new JTextField(8);
-        testarConexaoButton = new JButton("Testar Conexão");
-        salvarConfigButton = new JButton("Salvar Configuração");
+        // Componentes de configuração de conexão modernos
+        configHostField = createModernTextField(20);
+        configPortField = createModernTextField(8);
+        testarConexaoButton = createModernButton("Testar Conexão", new Color(0, 123, 255), new Color(0, 86, 179));
+        salvarConfigButton = createModernButton("Salvar Configuração", new Color(40, 167, 69), new Color(32, 134, 55));
     }
     
     private void setupLayout() {
-        setLayout(new BorderLayout());
+        setLayout(new BorderLayout(10, 10));
+        getContentPane().setBackground(new Color(248, 249, 250));
         
-        // Panel superior - informações do usuário
-        JPanel userPanel = new JPanel(new GridBagLayout());
-        userPanel.setBorder(BorderFactory.createTitledBorder("Dados do Usuário"));
-        userPanel.setBackground(new Color(240, 248, 255));
+        // Panel superior - informações do usuário moderno
+        JPanel userPanel = createModernCard();
+        userPanel.setLayout(new BoxLayout(userPanel, BoxLayout.Y_AXIS));
+        userPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(null, "CONTA - Informações do Usuário", 
+                0, 0, new Font("Segoe UI", Font.BOLD, 12), Color.BLACK),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
         
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.anchor = GridBagConstraints.WEST;
+        // Linha com nome e CPF
+        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        infoPanel.setOpaque(false);
+        infoPanel.add(nomeLabel);
+        infoPanel.add(Box.createHorizontalStrut(30));
+        infoPanel.add(cpfLabel);
         
-        gbc.gridx = 0; gbc.gridy = 0;
-        userPanel.add(nomeLabel, gbc);
-        gbc.gridx = 1;
-        userPanel.add(cpfLabel, gbc);
+        // Linha com saldo
+        JPanel saldoPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        saldoPanel.setOpaque(false);
+        saldoPanel.add(saldoLabel);
         
-        gbc.gridx = 0; gbc.gridy = 1;
-        gbc.gridwidth = 2;
-        userPanel.add(saldoLabel, gbc);
+        // Alert label
+        alertLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        // Adicionar label de alertas
-        gbc.gridy = 2;
-        userPanel.add(alertLabel, gbc);
+        userPanel.add(infoPanel);
+        userPanel.add(Box.createVerticalStrut(5));
+        userPanel.add(saldoPanel);
+        userPanel.add(Box.createVerticalStrut(5));
+        userPanel.add(alertLabel);
         
-        // Panel central - operações
-        JTabbedPane tabbedPane = new JTabbedPane();
+        // Panel central - operações com abas modernas
+        JTabbedPane tabbedPane = createModernTabbedPane();
         
         // Aba PIX
         JPanel pixPanel = createPixPanel();
-        tabbedPane.addTab("Enviar PIX", pixPanel);
+        tabbedPane.addTab("PIX", pixPanel);
         
         // Aba Depósito
         JPanel depositoPanel = createDepositoPanel();
-        tabbedPane.addTab("Fazer Depósito", depositoPanel);
+        tabbedPane.addTab("Depósito", depositoPanel);
         
         // Aba Extrato
         JPanel extratoPanel = createExtratoPanel();
@@ -195,10 +209,6 @@ public class MainGUI extends JFrame {
         // Aba Configurações
         JPanel configPanel = createConfigPanel();
         tabbedPane.addTab("Configurações", configPanel);
-        
-        // Aba Dispositivos Conectados
-        JPanel dispositivosPanel = createDispositivosPanel();
-        tabbedPane.addTab("Dispositivos", dispositivosPanel);
         
         // Panel inferior - botões de ação
         JPanel actionPanel = new JPanel(new FlowLayout());
@@ -410,111 +420,6 @@ public class MainGUI extends JFrame {
         return mainPanel;
     }
     
-    private JPanel createDispositivosPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        // Título
-        JLabel titleLabel = new JLabel("Dispositivos Conectados ao Servidor");
-        titleLabel.setFont(new Font(titleLabel.getFont().getName(), Font.BOLD, 16));
-        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        panel.add(titleLabel, BorderLayout.NORTH);
-        
-        // Tabela de dispositivos
-        JScrollPane scrollPane = new JScrollPane(dispositivosTable);
-        scrollPane.setPreferredSize(new Dimension(500, 200));
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        // Painel de botões
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-        buttonPanel.add(atualizarDispositivosButton);
-        
-        // Botão para reconectar ao servidor
-        JButton reconectarButton = new JButton("Reconectar");
-        reconectarButton.addActionListener(e -> tentarReconectar());
-        buttonPanel.add(reconectarButton);
-        
-        panel.add(buttonPanel, BorderLayout.SOUTH);
-        
-        // Carregar dados iniciais
-        carregarDispositivosConectados();
-        
-        return panel;
-    }
-    
-    private void carregarDispositivosConectados() {
-        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() throws Exception {
-                try {
-                    // Simular dados de dispositivos conectados
-                    SwingUtilities.invokeLater(() -> {
-                        dispositivosTableModel.setRowCount(0);
-                        
-                        // Adicionar dispositivo local (cliente atual)
-                        String localIP = getLocalIP();
-                        dispositivosTableModel.addRow(new Object[]{
-                            localIP, 
-                            "Cliente", 
-                            "Este Cliente", 
-                            "Conectado",
-                            java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"))
-                        });
-                        
-                        // Simular outros dispositivos (em um sistema real, isso viria do servidor)
-                        dispositivosTableModel.addRow(new Object[]{
-                            "192.168.1.100", 
-                            "8080", 
-                            "Servidor NewPix", 
-                            "Online",
-                            "Sempre ativo"
-                        });
-                        
-                        dispositivosTableModel.addRow(new Object[]{
-                            "192.168.1.101", 
-                            "Cliente", 
-                            "Cliente-002", 
-                            "Conectado",
-                            "09:30:15"
-                        });
-                    });
-                    
-                } catch (Exception e) {
-                    CLILogger.error("Erro ao carregar dispositivos: " + e.getMessage());
-                }
-                return null;
-            }
-        };
-        worker.execute();
-    }
-    
-    private void tentarReconectar() {
-        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() throws Exception {
-                try {
-                    showAlert("Tentando reconectar...", "info");
-                    
-                    if (client.isConnected()) {
-                        showAlert("Já conectado ao servidor", "success");
-                    } else {
-                        boolean reconnected = client.connect();
-                        if (reconnected) {
-                            showAlert("Reconectado com sucesso!", "success");
-                            carregarDispositivosConectados();
-                        } else {
-                            showAlert("Falha na reconexão", "error");
-                        }
-                    }
-                } catch (Exception e) {
-                    showAlert("Erro na reconexão: " + e.getMessage(), "error");
-                }
-                return null;
-            }
-        };
-        worker.execute();
-    }
-    
     private String getLocalIP() {
         try {
             return java.net.InetAddress.getLocalHost().getHostAddress();
@@ -629,9 +534,6 @@ public class MainGUI extends JFrame {
         // Setup deposit action
         setupDepositoAction();
         
-        // Setup dispositivos action
-        atualizarDispositivosButton.addActionListener(e -> carregarDispositivosConectados());
-        
         // Setup configuration actions
         testarConexaoButton.addActionListener(e -> testarNovaConexao());
         salvarConfigButton.addActionListener(e -> salvarConfiguracaoConexao());
@@ -645,6 +547,47 @@ public class MainGUI extends JFrame {
     }
     
     private void carregarDadosUsuario() {
+        carregarDadosUsuarioComTentativas(false);
+    }
+    
+    private void carregarDadosUsuarioComTentativas(boolean isRetry) {
+        if (isRetry) {
+            tentativasCarregamento++;
+        } else {
+            tentativasCarregamento = 0;
+        }
+        
+        if (tentativasCarregamento >= MAX_TENTATIVAS_CARREGAMENTO) {
+            CLILogger.error("Máximo de tentativas de carregamento excedido");
+            
+            // Mostrar dados de erro permanente
+            nomeLabel.setText("Nome: Erro - máx tentativas");
+            cpfLabel.setText("CPF: Indisponível");
+            saldoLabel.setText("Saldo: Indisponível");
+            
+            AnimationUtils.showToast(this, 
+                                   "❌ Falha ao carregar dados após " + MAX_TENTATIVAS_CARREGAMENTO + " tentativas", 
+                                   5000, 
+                                   NewPixTheme.ERROR_COLOR);
+            
+            // Oferecer opção de voltar ao login
+            int option = JOptionPane.showConfirmDialog(this,
+                "Não foi possível carregar os dados do usuário após várias tentativas.\n\n" +
+                "Isso pode indicar um problema de conexão ou sessão.\n\n" +
+                "Deseja voltar à tela de login?",
+                "Erro Persistente",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.ERROR_MESSAGE);
+                
+            if (option == JOptionPane.YES_OPTION) {
+                client.disconnect();
+                LoginWindow loginWindow = new LoginWindow();
+                loginWindow.setVisible(true);
+                this.dispose();
+            }
+            return;
+        }
+        
         try {
             String dadosJson = client.getDadosUsuario(token);
             CLILogger.info("Resposta do servidor para dados do usuário: " + dadosJson);
@@ -664,6 +607,9 @@ public class MainGUI extends JFrame {
                     cpfLabel.setText("CPF: " + cpfUsuario);
                     saldoLabel.setText("Saldo: " + currencyFormat.format(saldoUsuario));
                     
+                    // Reset tentativas em caso de sucesso
+                    tentativasCarregamento = 0;
+                    
                 } else if (dadosNode.has("status") && dadosNode.get("status").asBoolean()) {
                     // Formato com status=true
                     JsonNode dataNode = dadosNode.get("data");
@@ -675,6 +621,9 @@ public class MainGUI extends JFrame {
                         nomeLabel.setText("Nome: " + nomeUsuario);
                         cpfLabel.setText("CPF: " + cpfUsuario);
                         saldoLabel.setText("Saldo: " + currencyFormat.format(saldoUsuario));
+                        
+                        // Reset tentativas em caso de sucesso
+                        tentativasCarregamento = 0;
                     }
                     
                 } else if (dadosNode.has("nome") && dadosNode.has("cpf") && dadosNode.has("saldo")) {
@@ -687,6 +636,9 @@ public class MainGUI extends JFrame {
                     cpfLabel.setText("CPF: " + cpfUsuario);
                     saldoLabel.setText("Saldo: " + currencyFormat.format(saldoUsuario));
                     
+                    // Reset tentativas em caso de sucesso
+                    tentativasCarregamento = 0;
+                    
                 } else {
                     // Erro na resposta
                     String errorMsg = "Dados do usuário não encontrados";
@@ -698,27 +650,160 @@ public class MainGUI extends JFrame {
                     
                     CLILogger.error("Erro ao carregar dados: " + errorMsg);
                     
-                    // Usar toast em vez de JOptionPane
-                    AnimationUtils.showToast(this, 
-                                           "❌ Erro ao carregar dados: " + errorMsg, 
-                                           3000, 
-                                           NewPixTheme.ERROR_COLOR);
+                    // Definir valores padrão em caso de erro
+                    nomeLabel.setText("Nome: Carregando...");
+                    cpfLabel.setText("CPF: Carregando...");
+                    saldoLabel.setText("Saldo: Indisponível");
+                    
+                    // Usar toast em vez de JOptionPane com ações de recuperação
+                    if (errorMsg.toLowerCase().contains("token") || errorMsg.toLowerCase().contains("sessão")) {
+                        // Problema de sessão/token - sugerir login novamente
+                        int option = JOptionPane.showConfirmDialog(this,
+                            "Sua sessão expirou ou é inválida.\n\nDeseja fazer login novamente?",
+                            "Sessão Expirada",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.WARNING_MESSAGE);
+                            
+                        if (option == JOptionPane.YES_OPTION) {
+                            // Voltar para tela de login
+                            client.disconnect();
+                            LoginWindow loginWindow = new LoginWindow();
+                            loginWindow.setVisible(true);
+                            this.dispose();
+                            return;
+                        }
+                    } else {
+                        // Outros tipos de erro - mostrar toast com opção de tentar novamente
+                        AnimationUtils.showToast(this, 
+                                               "❌ Erro ao carregar dados: " + errorMsg + " (Tentativa " + (tentativasCarregamento + 1) + "/" + MAX_TENTATIVAS_CARREGAMENTO + ")", 
+                                               5000, 
+                                               NewPixTheme.ERROR_COLOR);
+                        
+                        // Tentar novamente automaticamente se ainda não excedeu o limite
+                        if (tentativasCarregamento < MAX_TENTATIVAS_CARREGAMENTO - 1) {
+                            Timer retryTimer = new Timer(3000, e -> {
+                                carregarDadosUsuarioComTentativas(true);
+                            });
+                            retryTimer.setRepeats(false);
+                            retryTimer.start();
+                        } else {
+                            // Última tentativa - oferecer opção manual
+                            Timer retryTimer = new Timer(3000, e -> {
+                                int retryOption = JOptionPane.showConfirmDialog(this,
+                                    "Erro ao carregar dados do usuário (Última tentativa).\n\nDeseja tentar novamente?",
+                                    "Erro de Carregamento",
+                                    JOptionPane.YES_NO_OPTION,
+                                    JOptionPane.QUESTION_MESSAGE);
+                                    
+                                if (retryOption == JOptionPane.YES_OPTION) {
+                                    carregarDadosUsuarioComTentativas(true);
+                                }
+                            });
+                            retryTimer.setRepeats(false);
+                            retryTimer.start();
+                        }
+                    }
                 }
                 
             } else {
                 CLILogger.error("Resposta vazia do servidor para dados do usuário");
-                AnimationUtils.showToast(this, 
-                                       "❌ Erro: Resposta vazia do servidor", 
-                                       3000, 
-                                       NewPixTheme.ERROR_COLOR);
+                
+                // Definir valores padrão
+                nomeLabel.setText("Nome: Erro de conexão (Tentativa " + (tentativasCarregamento + 1) + "/" + MAX_TENTATIVAS_CARREGAMENTO + ")");
+                cpfLabel.setText("CPF: Indisponível");
+                saldoLabel.setText("Saldo: Indisponível");
+                
+                // Verificar se ainda está conectado
+                if (client == null || !client.isConnected()) {
+                    int option = JOptionPane.showConfirmDialog(this,
+                        "Conexão com o servidor foi perdida.\n\nDeseja tentar reconectar?",
+                        "Conexão Perdida",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.ERROR_MESSAGE);
+                        
+                    if (option == JOptionPane.YES_OPTION) {
+                        // Voltar para tela de login para reconectar
+                        LoginWindow loginWindow = new LoginWindow();
+                        loginWindow.setVisible(true);
+                        this.dispose();
+                        return;
+                    }
+                } else {
+                    AnimationUtils.showToast(this, 
+                                           "❌ Erro: Resposta vazia do servidor (Tentativa " + (tentativasCarregamento + 1) + "/" + MAX_TENTATIVAS_CARREGAMENTO + ")", 
+                                           4000, 
+                                           NewPixTheme.ERROR_COLOR);
+                    
+                    // Tentar novamente automaticamente se ainda não excedeu o limite
+                    if (tentativasCarregamento < MAX_TENTATIVAS_CARREGAMENTO - 1) {
+                        Timer retryTimer = new Timer(3000, e -> {
+                            carregarDadosUsuarioComTentativas(true);
+                        });
+                        retryTimer.setRepeats(false);
+                        retryTimer.start();
+                    }
+                }
             }
             
         } catch (Exception e) {
-            CLILogger.error("Erro ao processar dados do usuário: " + e.getMessage());
+            CLILogger.error("Erro ao processar dados do usuário: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            
+            // Definir valores padrão em caso de erro crítico
+            nomeLabel.setText("Nome: Erro crítico (Tentativa " + (tentativasCarregamento + 1) + "/" + MAX_TENTATIVAS_CARREGAMENTO + ")");
+            cpfLabel.setText("CPF: Indisponível");
+            saldoLabel.setText("Saldo: Indisponível");
+            
+            String errorMessage;
+            if (e.getMessage() != null) {
+                String msg = e.getMessage().toLowerCase();
+                if (msg.contains("connection") || msg.contains("conexão")) {
+                    errorMessage = "Erro de conexão com o servidor";
+                } else if (msg.contains("timeout")) {
+                    errorMessage = "Timeout na comunicação";
+                } else if (msg.contains("json") || msg.contains("parse")) {
+                    errorMessage = "Erro ao processar resposta do servidor";
+                } else {
+                    errorMessage = "Erro ao processar dados: " + e.getMessage();
+                }
+            } else {
+                errorMessage = "Erro crítico: " + e.getClass().getSimpleName();
+            }
+            
             AnimationUtils.showToast(this, 
-                                   "❌ Erro ao processar dados: " + e.getMessage(), 
-                                   3000, 
+                                   "❌ " + errorMessage + " (Tentativa " + (tentativasCarregamento + 1) + "/" + MAX_TENTATIVAS_CARREGAMENTO + ")", 
+                                   4000, 
                                    NewPixTheme.ERROR_COLOR);
+                                   
+            // Tentar novamente automaticamente se ainda não excedeu o limite
+            if (tentativasCarregamento < MAX_TENTATIVAS_CARREGAMENTO - 1) {
+                Timer errorTimer = new Timer(2000, ex -> {
+                    carregarDadosUsuarioComTentativas(true);
+                });
+                errorTimer.setRepeats(false);
+                errorTimer.start();
+            } else {
+                // Última tentativa - oferecer opção manual
+                Timer errorTimer = new Timer(2000, ex -> {
+                    int retryOption = JOptionPane.showConfirmDialog(this,
+                        "Erro crítico ao carregar dados do usuário (Última tentativa).\n\n" + errorMessage + 
+                        "\n\nDeseja tentar novamente ou voltar ao login?",
+                        "Erro Crítico",
+                        JOptionPane.YES_NO_CANCEL_OPTION,
+                        JOptionPane.ERROR_MESSAGE);
+                        
+                    if (retryOption == JOptionPane.YES_OPTION) {
+                        carregarDadosUsuarioComTentativas(true);
+                    } else if (retryOption == JOptionPane.NO_OPTION) {
+                        // Voltar para login
+                        client.disconnect();
+                        LoginWindow loginWindow = new LoginWindow();
+                        loginWindow.setVisible(true);
+                        this.dispose();
+                    }
+                });
+                errorTimer.setRepeats(false);
+                errorTimer.start();
+            }
         }
     }
     
@@ -873,8 +958,8 @@ public class MainGUI extends JFrame {
             client.disconnect();
             
             // Voltar para tela de login
-            LoginGUI loginGUI = new LoginGUI();
-            loginGUI.setVisible(true);
+            LoginWindow loginWindow = new LoginWindow();
+            loginWindow.setVisible(true);
             this.dispose();
         }
     }
@@ -982,5 +1067,129 @@ public class MainGUI extends JFrame {
     
     private void updateUserData() {
         carregarDadosUsuario();
+    }
+    
+    /**
+     * Cria um campo de texto moderno.
+     */
+    private JTextField createModernTextField(int columns) {
+        JTextField field = new JTextField(columns);
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        field.setBackground(Color.WHITE);
+        field.setForeground(Color.BLACK);
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(108, 117, 125), 1),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        return field;
+    }
+    
+    /**
+     * Cria um botão moderno com gradiente e efeitos visuais.
+     */
+    private JButton createModernButton(String text, Color color1, Color color2) {
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Gradiente vertical
+                GradientPaint gradient = new GradientPaint(0, 0, color1, 0, getHeight(), color2);
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                
+                // Texto centralizado
+                g2.setColor(Color.WHITE);
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(getText())) / 2;
+                int y = (getHeight() + fm.getAscent()) / 2 - 2;
+                g2.drawString(getText(), x, y);
+                
+                g2.dispose();
+            }
+        };
+        
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setForeground(Color.WHITE);
+        button.setOpaque(false);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setPreferredSize(new Dimension(140, 35));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        // Efeito hover
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
+            }
+            
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBorder(null);
+            }
+        });
+        
+        return button;
+    }
+    
+    /**
+     * Cria um card moderno com aparência de cartão.
+     */
+    private JPanel createModernCard() {
+        JPanel card = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Fundo branco com bordas arredondadas
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+                
+                // Sombra sutil
+                g2.setColor(new Color(0, 0, 0, 20));
+                g2.fillRoundRect(2, 2, getWidth() - 2, getHeight() - 2, 15, 15);
+                
+                g2.dispose();
+            }
+        };
+        card.setOpaque(false);
+        return card;
+    }
+    
+    /**
+     * Cria um JTabbedPane moderno com visual aprimorado.
+     */
+    private JTabbedPane createModernTabbedPane() {
+        JTabbedPane tabbedPane = new JTabbedPane() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Fundo com gradiente sutil
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, new Color(248, 249, 250),
+                    0, getHeight(), new Color(233, 236, 239)
+                );
+                g2.setPaint(gradient);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        
+        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        tabbedPane.setBackground(new Color(248, 249, 250));
+        tabbedPane.setForeground(Color.BLACK);
+        tabbedPane.setTabPlacement(JTabbedPane.TOP);
+        tabbedPane.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        return tabbedPane;
     }
 }
