@@ -1,32 +1,44 @@
-# NewPix - Sistema Bancário
+# NewPix Banking System
 
-Sistema bancário moderno desenvolvido em Java com arquitetura cliente-servidor, interface gráfica Swing e gerenciamento unificado via PowerShell.
+Sistema bancário moderno desenvolvido em Java com arquitetura cliente-servidor, interface gráfica Swing e scripts de automação cross-platform.
 
 ## ✨ Características
 
 - **🔐 Autenticação Segura**: Login e cadastro com criptografia BCrypt
-- **💳 Validação CPF**: Formatos 100.181.699-45 ou 10018169945
+- **💳 Validação CPF**: Formatos 000.000.000-00 ou 00000000000
 - **🏦 Transações PIX**: Transferências instantâneas entre contas
-- **🖥️ Interface Moderna**: Janelas dedicadas para login/cadastro
-- **⚡ Script Unificado**: Gerenciamento completo via `newpix.ps1`
+- **🖥️ Interface Moderna**: LoginWindow com design responsivo
+- **⚡ Scripts Cross-Platform**: Windows (PowerShell) e Linux/macOS (Bash)
 - **📊 Servidor Multithreaded**: Múltiplos clientes simultâneos
 
 ## 🚀 Início Rápido
 
 ### Pré-requisitos
-- Java 8+
+- Java 17+
 - Maven 3.6+
-- PowerShell (Windows)
 
-### Execução
+### Execução Rápida
+
+**Windows:**
 ```powershell
-# Compilar e executar (primeira vez)
-.\newpix.ps1 build
-.\newpix.ps1 server    # Terminal 1
-.\newpix.ps1 client    # Terminal 2
+.\newpix.ps1 both-gui    # Sistema completo
+```
 
-# Menu interativo
-.\newpix.ps1
+**Linux/macOS:**
+```bash
+./newpix.sh both-gui     # Sistema completo
+```
+
+### Execução Manual
+```bash
+# Compilar
+mvn clean compile dependency:copy-dependencies
+
+# Servidor (Terminal 1)
+java -cp "target/classes:target/dependency/*" com.newpix.server.gui.ServerGUI
+
+# Cliente (Terminal 2) 
+java -cp "target/classes:target/dependency/*" com.newpix.client.gui.LoginWindow
 ```
 
 ## 📋 Comandos
@@ -149,15 +161,23 @@ Este projeto passou por uma **reorganização completa**:
 - 🗑️ Removidos diretórios `scripts/` obsoletos
 - 🗑️ Eliminado `validador-original/` duplicado
 
-### ⚡ Script Unificado
-Anteriormente: 26+ scripts dispersos (`.bat`, `.ps1`, `.sh`)
-**Agora**: 1 único script `newpix.ps1` com todas as funcionalidades
+### ⚡ Scripts Cross-Platform
+- **Windows**: `newpix.ps1` (PowerShell)
+- **Linux/macOS**: `newpix.sh` (Bash)
+- **Funcionalidades**: build, run, status, test, changelog
 
 ### 📊 Resultado
-- **Antes**: 50+ arquivos de configuração/script
-- **Depois**: Estrutura limpa e organizada
+- **Antes**: 48+ arquivos MD redundantes
+- **Depois**: 4 arquivos essenciais
 - **Manutenção**: Simplificada drasticamente
-- **Uso**: Interface única e intuitiva
+- **Cross-Platform**: Suporte completo Windows/Linux/macOS
+
+## 📚 Documentação
+
+- **[SCRIPTS.md](SCRIPTS.md)** - Guia completo dos scripts de automação
+- **[CHANGELOG.md](CHANGELOG.md)** - Histórico detalhado de mudanças
+- **[docs/Requisitos.md](docs/Requisitos.md)** - Especificação original do projeto
 
 ---
-*Projeto reorganizado e otimizado - Use apenas `.\newpix.ps1` para todas as operações.*
+
+*Desenvolvido com ❤️ por Matheuzaum1*
