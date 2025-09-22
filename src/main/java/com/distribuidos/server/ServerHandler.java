@@ -1,0 +1,303 @@
+package com.distribuidos.server;
+
+import com.distribuidos.common.ClientInfo;
+import com.distribuidos.common.MessageBuilder;
+import com.distribuidos.common.TokenManager;
+import com.distribuidos.common.Usuario;
+import com.distribuidos.database.DatabaseManager;
+import validador.Validator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.net.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+
+public class ServerHandler extends Thread {
+    private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
+    private final Socket clientSocket;
+    private final ServerGUI serverGUI;
+    private final DatabaseManager dbManager;
+    private final Map<String, ClientInfo> connectedClients;
+    private BufferedReader in;
+    private PrintWriter out;
+    private ClientInfo clientInfo;
+    
+    public ServerHandler(Socket clientSocket, ServerGUI serverGUI, Map<String, ClientInfo> connectedClients) {
+        this.clientSocket = clientSocket;
+        this.serverGUI = serverGUI;
+        this.dbManager = DatabaseManager.getInstance();
+        this.connectedClients = connectedClients;
+        
+        try {
+            this.in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            this.out = new PrintWriter(clientSocket.getOutputStream(), true);
+            
+            // Cria informações do cliente
+            String clientIP = clientSocket.getInetAddress().getHostAddress();
+            int clientPort = clientSocket.getPort();
+            String hostname = clientSocket.getInetAddress().getHostName();
+            
+            this.clientInfo = new ClientInfo(clientIP, clientPort, hostname);
+            String clientKey = clientIP + ":" + clientPort;
+            connectedClients.put(clientKey, clientInfo);
+            
+            serverGUI.addLogMessage("Cliente conectado: " + clientIP + ":" + clientPort);
+            serverGUI.updateConnectedClients();
+            
+        } catch (IOException e) {
+            logger.error("Erro ao inicializar handler do cliente", e);
+        }
+    }
+    
+    @Override
+    public void run() {
+        try {
+            String inputLine;
+            while ((inputLine = in.readLine()) != null) {
+                serverGUI.addLogMessage("Recebido de " + clientInfo.getIp() + ": " + inputLine);
+                
+                try {
+                    // Valida a mensagem usando o Validator
+                    Validator.validateClient(inputLine);
+                    
+                    // Processa a mensagem
+                    String response = processMessage(inputLine);
+                    
+                    // Envia resposta
+                    out.println(response);
+                    serverGUI.addLogMessage("Enviado para " + clientInfo.getIp() + ": " + response);
+                    
+                } catch (Exception e) {
+                    String operation = extractOperationSafely(inputLine);
+                    String errorResponse = MessageBuilder.buildErrorResponse(operation, 
+                        "Erro de validação: " + e.getMessage());
+                    out.println(errorResponse);
+                    serverGUI.addLogMessage("Erro enviado para " + clientInfo.getIp() + ": " + errorResponse);
+                    logger.error("Erro ao processar mensagem do cliente", e);
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Erro na comunicação com cliente", e);
+        } finally {
+            cleanup();
+        }
+    }
+    
+    private String processMessage(String message) {
+        try {
+            String operation = MessageBuilder.extractOperation(message);
+            
+            switch (operation) {
+                case "usuario_login":
+                    return handleLogin(message);
+                case "usuario_logout":
+                    return handleLogout(message);
+                case "usuario_criar":
+                    return handleCreateUser(message);
+                case "usuario_ler":
+                    return handleReadUser(message);
+                case "usuario_atualizar":
+                    return handleUpdateUser(message);
+                case "usuario_deletar":
+                    return handleDeleteUser(message);
+                default:
+                    return MessageBuilder.buildErrorResponse(operation, "Operação não suportada");
+            }
+        } catch (Exception e) {
+            logger.error("Erro ao processar mensagem", e);
+            return MessageBuilder.buildErrorResponse("unknown", "Erro interno do servidor");
+        }
+    }
+    
+    private String handleLogin(String message) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
+            
+            String cpf = node.get("cpf").asText();
+            String senha = node.get("senha").asText();
+            
+            if (dbManager.authenticateUser(cpf, senha)) {
+                Usuario user = dbManager.getUser(cpf);
+                String token = TokenManager.generateToken(cpf);
+                
+                // Atualiza informações do cliente
+                clientInfo.setCpfUsuario(cpf);
+                clientInfo.setNomeUsuario(user.getNome());
+                serverGUI.updateConnectedClients();
+                
+                return MessageBuilder.buildSuccessResponse("usuario_login", "Login realizado com sucesso", token);
+            } else {
+                return MessageBuilder.buildErrorResponse("usuario_login", "CPF ou senha inválidos");
+            }
+        } catch (Exception e) {
+            logger.error("Erro no login", e);
+            return MessageBuilder.buildErrorResponse("usuario_login", "Erro interno no login");
+        }
+    }
+    
+    private String handleLogout(String message) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
+            
+            String token = node.get("token").asText();
+            
+            if (TokenManager.isValidToken(token)) {
+                TokenManager.removeToken(token);
+                
+                // Remove informações do usuário do cliente
+                clientInfo.setCpfUsuario(null);
+                clientInfo.setNomeUsuario(null);
+                serverGUI.updateConnectedClients();
+                
+                return MessageBuilder.buildSuccessResponse("usuario_logout", "Logout realizado com sucesso");
+            } else {
+                return MessageBuilder.buildErrorResponse("usuario_logout", "Token inválido ou expirado");
+            }
+        } catch (Exception e) {
+            logger.error("Erro no logout", e);
+            return MessageBuilder.buildErrorResponse("usuario_logout", "Erro interno no logout");
+        }
+    }
+    
+    private String handleCreateUser(String message) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
+            
+            String nome = node.get("nome").asText();
+            String cpf = node.get("cpf").asText();
+            String senha = node.get("senha").asText();
+            
+            if (dbManager.userExists(cpf)) {
+                return MessageBuilder.buildErrorResponse("usuario_criar", "Usuário já existe com este CPF");
+            }
+            
+            if (dbManager.createUser(cpf, nome, senha)) {
+                serverGUI.updateDatabaseView();
+                return MessageBuilder.buildSuccessResponse("usuario_criar", "Usuário criado com sucesso");
+            } else {
+                return MessageBuilder.buildErrorResponse("usuario_criar", "Erro ao criar usuário");
+            }
+        } catch (Exception e) {
+            logger.error("Erro ao criar usuário", e);
+            return MessageBuilder.buildErrorResponse("usuario_criar", "Erro interno ao criar usuário");
+        }
+    }
+    
+    private String handleReadUser(String message) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
+            
+            String token = node.get("token").asText();
+            String cpf = TokenManager.getCpfFromToken(token);
+            
+            if (cpf == null) {
+                return MessageBuilder.buildErrorResponse("usuario_ler", "Token inválido ou expirado");
+            }
+            
+            Usuario user = dbManager.getUser(cpf);
+            if (user != null) {
+                return MessageBuilder.buildSuccessResponse("usuario_ler", "Dados do usuário obtidos com sucesso", user);
+            } else {
+                return MessageBuilder.buildErrorResponse("usuario_ler", "Usuário não encontrado");
+            }
+        } catch (Exception e) {
+            logger.error("Erro ao ler usuário", e);
+            return MessageBuilder.buildErrorResponse("usuario_ler", "Erro interno ao ler usuário");
+        }
+    }
+    
+    private String handleUpdateUser(String message) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
+            
+            String token = node.get("token").asText();
+            String cpf = TokenManager.getCpfFromToken(token);
+            
+            if (cpf == null) {
+                return MessageBuilder.buildErrorResponse("usuario_atualizar", "Token inválido ou expirado");
+            }
+            
+            com.fasterxml.jackson.databind.JsonNode usuarioNode = node.get("usuario");
+            String nome = usuarioNode.has("nome") ? usuarioNode.get("nome").asText() : null;
+            String senha = usuarioNode.has("senha") ? usuarioNode.get("senha").asText() : null;
+            
+            if (dbManager.updateUser(cpf, nome, senha)) {
+                serverGUI.updateDatabaseView();
+                return MessageBuilder.buildSuccessResponse("usuario_atualizar", "Usuário atualizado com sucesso");
+            } else {
+                return MessageBuilder.buildErrorResponse("usuario_atualizar", "Erro ao atualizar usuário");
+            }
+        } catch (Exception e) {
+            logger.error("Erro ao atualizar usuário", e);
+            return MessageBuilder.buildErrorResponse("usuario_atualizar", "Erro interno ao atualizar usuário");
+        }
+    }
+    
+    private String handleDeleteUser(String message) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
+            
+            String token = node.get("token").asText();
+            String cpf = TokenManager.getCpfFromToken(token);
+            
+            if (cpf == null) {
+                return MessageBuilder.buildErrorResponse("usuario_deletar", "Token inválido ou expirado");
+            }
+            
+            if (dbManager.deleteUser(cpf)) {
+                TokenManager.removeToken(token);
+                
+                // Remove informações do usuário do cliente
+                clientInfo.setCpfUsuario(null);
+                clientInfo.setNomeUsuario(null);
+                serverGUI.updateConnectedClients();
+                serverGUI.updateDatabaseView();
+                
+                return MessageBuilder.buildSuccessResponse("usuario_deletar", "Usuário deletado com sucesso");
+            } else {
+                return MessageBuilder.buildErrorResponse("usuario_deletar", "Erro ao deletar usuário");
+            }
+        } catch (Exception e) {
+            logger.error("Erro ao deletar usuário", e);
+            return MessageBuilder.buildErrorResponse("usuario_deletar", "Erro interno ao deletar usuário");
+        }
+    }
+    
+    private String extractOperationSafely(String message) {
+        try {
+            return MessageBuilder.extractOperation(message);
+        } catch (Exception e) {
+            return "unknown";
+        }
+    }
+    
+    private void cleanup() {
+        try {
+            String clientKey = clientInfo.getIp() + ":" + clientInfo.getPorta();
+            connectedClients.remove(clientKey);
+            
+            // Remove token se existir
+            if (clientInfo.getCpfUsuario() != null) {
+                TokenManager.removeTokenForCpf(clientInfo.getCpfUsuario());
+            }
+            
+            serverGUI.addLogMessage("Cliente desconectado: " + clientInfo.getIp() + ":" + clientInfo.getPorta());
+            serverGUI.updateConnectedClients();
+            
+            if (in != null) in.close();
+            if (out != null) out.close();
+            if (clientSocket != null) clientSocket.close();
+            
+        } catch (IOException e) {
+            logger.error("Erro ao limpar recursos do cliente", e);
+        }
+    }
+}
