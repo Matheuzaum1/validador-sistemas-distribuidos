@@ -87,8 +87,27 @@ public class ClientConnection {
             disconnect();
             throw new RuntimeException("Erro de comunicação: " + e.getMessage());
         } catch (Exception e) {
+            // Validation errors (from Validator) are surfaced here. For token-related issues,
+            // present a friendlier message and return a well-formed error JSON so callers
+            // handle it uniformly.
             logger.error("Erro de validação", e);
             clientGUI.addLogMessage("Erro de validação: " + e.getMessage());
+
+            String lower = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (lower.contains("token") || lower.contains("campo 'token'") || lower.contains("campo \"token\"") ) {
+                // Show a user-friendly dialog and return an error JSON indicating invalid token
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    javax.swing.JOptionPane.showMessageDialog(null,
+                        "Token inválido — por favor reconecte ou efetue login novamente.",
+                        "Token inválido",
+                        javax.swing.JOptionPane.WARNING_MESSAGE);
+                });
+
+                return com.distribuidos.common.MessageBuilder.buildErrorResponse("validation_error",
+                    "Token inválido - reconecte ou faça login novamente");
+            }
+
+            // For other validation errors, rethrow to let callers decide how to present them.
             throw new RuntimeException("Erro de validação: " + e.getMessage());
         }
     }
