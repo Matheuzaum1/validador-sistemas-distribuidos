@@ -11,6 +11,9 @@ public class Transacao implements Serializable {
     private String cpfDestino;
     private double valor;
     private LocalDateTime timestamp;
+    // Optional cached names for origem/destino (populated by DAO)
+    private String nomeEnviador;
+    private String nomeRecebedor;
 
     public Transacao() {}
 
@@ -21,6 +24,12 @@ public class Transacao implements Serializable {
         this.valor = valor;
         this.timestamp = timestamp;
     }
+
+    public String getNomeEnviador() { return nomeEnviador; }
+    public void setNomeEnviador(String nomeEnviador) { this.nomeEnviador = nomeEnviador; }
+
+    public String getNomeRecebedor() { return nomeRecebedor; }
+    public void setNomeRecebedor(String nomeRecebedor) { this.nomeRecebedor = nomeRecebedor; }
 
     public long getId() { return id; }
     public void setId(long id) { this.id = id; }
@@ -36,4 +45,10 @@ public class Transacao implements Serializable {
 
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+
+    @Override
+    public String toString() {
+        return String.format("Transacao{id=%d, valor=%.2f, timestamp=%s, cpfOrigem=%s, nomeEnviador=%s, cpfDestino=%s, nomeRecebedor=%s}",
+                id, valor, timestamp == null ? "null" : timestamp.toString(), cpfOrigem, nomeEnviador, cpfDestino, nomeRecebedor);
+    }
 }

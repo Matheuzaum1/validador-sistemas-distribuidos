@@ -128,13 +128,34 @@ public class MessageBuilder {
                 item.put("valor_enviado", t.getValor());
 
                 Map<String, Object> enviador = new HashMap<>();
-                enviador.put("nome", null);
-                enviador.put("cpf", t.getCpfOrigem());
+                String cpfOrig = t.getCpfOrigem();
+                String nomeOrig = t.getNomeEnviador();
+                // fallback to DB lookup if not provided by DAO
+                if ((nomeOrig == null || nomeOrig.isEmpty()) && cpfOrig != null) {
+                    try {
+                        com.distribuidos.common.Usuario u = com.distribuidos.database.DatabaseManager.getInstance().getUser(cpfOrig);
+                        if (u != null) nomeOrig = u.getNome();
+                    } catch (Exception e) {
+                        // keep nomeOrig null on error
+                    }
+                }
+                enviador.put("nome", nomeOrig);
+                enviador.put("cpf", cpfOrig);
                 item.put("usuario_enviador", enviador);
 
                 Map<String, Object> recebedor = new HashMap<>();
-                recebedor.put("nome", null);
-                recebedor.put("cpf", t.getCpfDestino());
+                String cpfDest = t.getCpfDestino();
+                String nomeDest = t.getNomeRecebedor();
+                if ((nomeDest == null || nomeDest.isEmpty()) && cpfDest != null) {
+                    try {
+                        com.distribuidos.common.Usuario u2 = com.distribuidos.database.DatabaseManager.getInstance().getUser(cpfDest);
+                        if (u2 != null) nomeDest = u2.getNome();
+                    } catch (Exception e) {
+                        // keep nomeDest null on error
+                    }
+                }
+                recebedor.put("nome", nomeDest);
+                recebedor.put("cpf", cpfDest);
                 item.put("usuario_recebedor", recebedor);
 
                 // Use ISO 8601 UTC-ish representation for timestamps

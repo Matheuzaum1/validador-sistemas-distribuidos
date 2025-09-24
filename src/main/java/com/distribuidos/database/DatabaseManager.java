@@ -253,7 +253,13 @@ public class DatabaseManager {
 
     public java.util.List<com.distribuidos.common.Transacao> getAllTransacoes() {
         java.util.List<com.distribuidos.common.Transacao> list = new java.util.ArrayList<>();
-        String sql = "SELECT * FROM transacoes ORDER BY id DESC";
+        // Use LEFT JOINs to fetch sender/receiver names in a single query to avoid N+1 lookups
+        String sql = "SELECT t.id, t.cpf_origem, t.cpf_destino, t.valor, t.timestamp, " +
+                "uo.nome AS nome_origem, ud.nome AS nome_destino " +
+                "FROM transacoes t " +
+                "LEFT JOIN usuarios uo ON t.cpf_origem = uo.cpf " +
+                "LEFT JOIN usuarios ud ON t.cpf_destino = ud.cpf " +
+                "ORDER BY t.id DESC";
 
         try (Connection conn = DriverManager.getConnection(DB_URL);
              Statement stmt = conn.createStatement();
@@ -265,8 +271,12 @@ public class DatabaseManager {
                 String destino = rs.getString("cpf_destino");
                 double valor = rs.getDouble("valor");
                 java.time.LocalDateTime ts = java.time.LocalDateTime.parse(rs.getString("timestamp"));
+                String nomeOrigem = rs.getString("nome_origem");
+                String nomeDestino = rs.getString("nome_destino");
 
                 com.distribuidos.common.Transacao t = new com.distribuidos.common.Transacao(id, origem, destino, valor, ts);
+                t.setNomeEnviador(nomeOrigem);
+                t.setNomeRecebedor(nomeDestino);
                 list.add(t);
             }
         } catch (SQLException e) {
