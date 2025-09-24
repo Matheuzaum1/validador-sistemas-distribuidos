@@ -32,6 +32,8 @@ public class ServerGUI extends JFrame {
     private DefaultTableModel clientsTableModel;
     private JTable databaseTable;
     private DefaultTableModel databaseTableModel;
+    private JTable transactionsTable;
+    private DefaultTableModel transactionsTableModel;
     
     private ServerSocket serverSocket;
     private boolean isRunning = false;
@@ -64,6 +66,10 @@ public class ServerGUI extends JFrame {
         // Aba do Banco de Dados
         JPanel databasePanel = createDatabasePanel();
         tabbedPane.addTab("Banco de Dados", databasePanel);
+        
+    // Aba de Transações
+    JPanel transactionsPanel = createTransactionsPanel();
+    tabbedPane.addTab("Transações", transactionsPanel);
         
         add(tabbedPane);
         
@@ -200,6 +206,38 @@ public class ServerGUI extends JFrame {
         
         return panel;
     }
+
+    private JPanel createTransactionsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Transações no Banco de Dados"));
+
+        String[] columnNames = {"ID", "Valor", "CPF Enviador", "CPF Recebedor", "Data"};
+        transactionsTableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        transactionsTable = new JTable(transactionsTableModel);
+        transactionsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        transactionsTable.getTableHeader().setReorderingAllowed(false);
+
+        JScrollPane scrollPane = new JScrollPane(transactionsTable);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        JButton refreshButton = new JButton("Atualizar");
+        refreshButton.addActionListener(e -> updateTransactionsView());
+        buttonPanel.add(refreshButton);
+
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Fill initially
+        updateTransactionsView();
+
+        return panel;
+    }
     
     private void startServer() {
         try {
@@ -317,6 +355,29 @@ public class ServerGUI extends JFrame {
                 };
                 
                 databaseTableModel.addRow(row);
+            }
+        });
+        // Also refresh transactions view
+        updateTransactionsView();
+    }
+
+    public void updateTransactionsView() {
+        SwingUtilities.invokeLater(() -> {
+            if (transactionsTableModel == null) return;
+            transactionsTableModel.setRowCount(0);
+
+            java.util.List<com.distribuidos.common.Transacao> transacoes = dbManager.getAllTransacoes();
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+
+            for (com.distribuidos.common.Transacao t : transacoes) {
+                Object[] row = {
+                    t.getId(),
+                    String.format("R$ %.2f", t.getValor()),
+                    t.getCpfOrigem() != null ? t.getCpfOrigem() : "-",
+                    t.getCpfDestino() != null ? t.getCpfDestino() : "-",
+                    sdf.format(java.sql.Timestamp.valueOf(t.getTimestamp()))
+                };
+                transactionsTableModel.addRow(row);
             }
         });
     }

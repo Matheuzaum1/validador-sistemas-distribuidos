@@ -127,4 +127,15 @@ public class ClientConnection {
         String message = MessageBuilder.buildDeleteUserMessage(token);
         return sendMessage(message);
     }
+
+    // Métodos para transações
+    public String transfer(String token, String cpfDestino, double valor) {
+        String message = MessageBuilder.buildTransferMessage(token, cpfDestino, valor);
+        return sendMessage(message);
+    }
+
+    public String deposit(String token, double valor) {
+        String message = MessageBuilder.buildDepositMessage(token, valor);
+        return sendMessage(message);
+    }
 }

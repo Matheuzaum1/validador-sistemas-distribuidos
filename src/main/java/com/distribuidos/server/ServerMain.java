@@ -25,7 +25,34 @@ public class ServerMain {
         SwingUtilities.invokeLater(() -> {
             try {
                 ServerGUI serverGUI = new ServerGUI();
-                serverGUI.setVisible(true);
+                // If a port is provided as first arg, auto-start server on that port (headless-friendly)
+                if (args != null && args.length > 0) {
+                    try {
+                        int port = Integer.parseInt(args[0]);
+                        serverGUI.setVisible(false);
+                        // set port field and invoke startServer reflectively
+                        try {
+                            java.lang.reflect.Field portField = ServerGUI.class.getDeclaredField("portField");
+                            portField.setAccessible(true);
+                            javax.swing.JTextField pf = (javax.swing.JTextField) portField.get(serverGUI);
+                            pf.setText(String.valueOf(port));
+                        } catch (Exception ignored) {}
+
+                        try {
+                            java.lang.reflect.Method startMethod = ServerGUI.class.getDeclaredMethod("startServer");
+                            startMethod.setAccessible(true);
+                            startMethod.invoke(serverGUI);
+                        } catch (Exception e) {
+                            logger.error("Erro ao auto-iniciar servidor", e);
+                            serverGUI.setVisible(true);
+                        }
+                    } catch (NumberFormatException ignored) {
+                        serverGUI.setVisible(true);
+                    }
+                } else {
+                    serverGUI.setVisible(true);
+                }
+
                 logger.info("Servidor iniciado com sucesso");
             } catch (Exception e) {
                 logger.error("Erro ao iniciar servidor", e);

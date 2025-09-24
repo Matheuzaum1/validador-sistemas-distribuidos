@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -40,8 +39,8 @@ public class ClientGUI extends JFrame {
     // Componentes de informação
     private JLabel userInfoLabel;
     private JTextArea logArea;
-    private JTable clientsTable;
-    private DefaultTableModel clientsTableModel;
+    // private JTable clientsTable;
+    // private DefaultTableModel clientsTableModel;
     
     // Estado
     private ClientConnection connection;
@@ -68,9 +67,11 @@ public class ClientGUI extends JFrame {
         JPanel mainPanel = createMainPanel();
         tabbedPane.addTab("Principal", mainPanel);
         
-        // Aba de Clientes Conectados
-        JPanel clientsPanel = createClientsPanel();
-        tabbedPane.addTab("Clientes Conectados", clientsPanel);
+    // Aba de Transações
+    JPanel transactionsPanel = createTransactionsPanel();
+    tabbedPane.addTab("Transações", transactionsPanel);
+        
+    // Aba de Clientes Conectados removida
         
         add(tabbedPane);
         
@@ -228,37 +229,7 @@ public class ClientGUI extends JFrame {
         return panel;
     }
     
-    private JPanel createClientsPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Clientes Conectados no Servidor"));
-        
-        // Tabela de clientes (simulada - em um sistema real seria obtida do servidor)
-        String[] columnNames = {"IP", "Porta", "Hostname", "CPF Usuário", "Nome Usuário", "Status"};
-        clientsTableModel = new DefaultTableModel(columnNames, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        
-        clientsTable = new JTable(clientsTableModel);
-        clientsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        clientsTable.getTableHeader().setReorderingAllowed(false);
-        
-        JScrollPane scrollPane = new JScrollPane(clientsTable);
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        // Nota explicativa
-        JLabel noteLabel = new JLabel("<html><i>Nota: Esta tabela mostra apenas o cliente atual quando conectado.<br/>" +
-                "Para ver todos os clientes conectados, consulte a interface do servidor.</i></html>");
-        noteLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        panel.add(noteLabel, BorderLayout.SOUTH);
-        
-        // Adiciona alguns dados simulados
-        updateClientsTable();
-        
-        return panel;
-    }
+    // createClientsPanel() removido porque a aba foi eliminada
     
     private void connectToServer() {
         try {
@@ -568,28 +539,116 @@ public class ClientGUI extends JFrame {
         readUserButton.setEnabled(connected && isLoggedIn);
         updateUserButton.setEnabled(connected && isLoggedIn);
         deleteUserButton.setEnabled(connected && isLoggedIn);
+        // Ativa/desativa controles de transação
+        // (procura por componentes na aba de transações)
+        // Habilitação será tratada pelos próprios botões ao executar
+    }
+
+    private JPanel createTransactionsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Transações"));
+
+        JPanel form = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5,5,5,5);
+
+        gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.WEST;
+        form.add(new JLabel("CPF Destino:"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        JTextField cpfDestinoField = new JTextField(20);
+        cpfDestinoField.setToolTipText("Formato: 000.000.000-00");
+        form.add(cpfDestinoField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 1; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
+        form.add(new JLabel("Valor (R$):"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        JTextField valorField = new JTextField(12);
+        form.add(valorField, gbc);
+
+        panel.add(form, BorderLayout.NORTH);
+
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton transferButton = new JButton("Transferir");
+        JButton depositButton = new JButton("Depositar");
+
+        transferButton.addActionListener(e -> {
+            if (!connection.isConnected()) {
+                JOptionPane.showMessageDialog(this, "Você precisa estar conectado ao servidor", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!isLoggedIn || currentToken == null) {
+                JOptionPane.showMessageDialog(this, "Você precisa estar logado para realizar transações", "Erro", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            String cpfDestino = cpfDestinoField.getText().trim();
+            if (!validateCpf(cpfDestino)) {
+                JOptionPane.showMessageDialog(this, "CPF destino inválido. Formato: 000.000.000-00", "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            double valor;
+            try {
+                valor = Double.parseDouble(valorField.getText().trim().replace(',', '.'));
+                if (valor <= 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Valor inválido. Informe um número maior que zero.", "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            try {
+                String response = connection.transfer(currentToken, cpfDestino, valor);
+                if (MessageBuilder.extractStatus(response)) {
+                    JOptionPane.showMessageDialog(this, "Transferência efetuada com sucesso", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, MessageBuilder.extractInfo(response), "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+                addLogMessage("Transação transferir -> " + response);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Erro ao realizar transferência: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        depositButton.addActionListener(e -> {
+            if (!connection.isConnected()) {
+                JOptionPane.showMessageDialog(this, "Você precisa estar conectado ao servidor", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!isLoggedIn || currentToken == null) {
+                JOptionPane.showMessageDialog(this, "Você precisa estar logado para realizar depósitos", "Erro", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            double valor;
+            try {
+                valor = Double.parseDouble(valorField.getText().trim().replace(',', '.'));
+                if (valor <= 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Valor inválido. Informe um número maior que zero.", "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            try {
+                String response = connection.deposit(currentToken, valor);
+                if (MessageBuilder.extractStatus(response)) {
+                    JOptionPane.showMessageDialog(this, "Depósito efetuado com sucesso", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, MessageBuilder.extractInfo(response), "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+                addLogMessage("Transação depositar -> " + response);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Erro ao realizar depósito: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        buttons.add(transferButton);
+        buttons.add(depositButton);
+        panel.add(buttons, BorderLayout.CENTER);
+
+        return panel;
     }
     
-    private void updateClientsTable() {
-        // Limpa a tabela
-        clientsTableModel.setRowCount(0);
-
-        // Adiciona apenas o próprio cliente se estiver conectado
-        if (connection.isConnected()) {
-            Object[] row = {
-                "127.0.0.1",
-                "Porta dinâmica",
-                "localhost",
-                isLoggedIn ? cpfField.getText() : "Não logado",
-                isLoggedIn ? "Usuário atual" : "Não logado",
-                "Conectado"
-            };
-            clientsTableModel.addRow(row);
-        }
-
-        // Nota: Em um sistema real, esta tabela seria populada com dados
-        // reais obtidos do servidor através de uma requisição específica
-    }
+    // Método relacionado a lista de clientes removido
     
     public void addLogMessage(String message) {
         SwingUtilities.invokeLater(() -> {

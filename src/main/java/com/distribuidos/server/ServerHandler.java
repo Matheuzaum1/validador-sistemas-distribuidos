@@ -42,9 +42,11 @@ public class ServerHandler extends Thread {
             this.clientInfo = new ClientInfo(clientIP, clientPort, hostname);
             String clientKey = clientIP + ":" + clientPort;
             connectedClients.put(clientKey, clientInfo);
-            
-            serverGUI.addLogMessage("Cliente conectado: " + clientIP + ":" + clientPort);
-            serverGUI.updateConnectedClients();
+
+            if (this.serverGUI != null) {
+                serverGUI.addLogMessage("Cliente conectado: " + clientIP + ":" + clientPort);
+                serverGUI.updateConnectedClients();
+            }
             
         } catch (IOException e) {
             logger.error("Erro ao inicializar handler do cliente", e);
@@ -67,14 +69,18 @@ public class ServerHandler extends Thread {
                     
                     // Envia resposta
                     out.println(response);
-                    serverGUI.addLogMessage("Enviado para " + clientInfo.getIp() + ": " + response);
+                    if (this.serverGUI != null) {
+                        serverGUI.addLogMessage("Enviado para " + clientInfo.getIp() + ": " + response);
+                    }
                     
                 } catch (Exception e) {
                     String operation = extractOperationSafely(inputLine);
                     String errorResponse = MessageBuilder.buildErrorResponse(operation, 
                         "Erro de validação: " + e.getMessage());
                     out.println(errorResponse);
-                    serverGUI.addLogMessage("Erro enviado para " + clientInfo.getIp() + ": " + errorResponse);
+                    if (this.serverGUI != null) {
+                        serverGUI.addLogMessage("Erro enviado para " + clientInfo.getIp() + ": " + errorResponse);
+                    }
                     logger.error("Erro ao processar mensagem do cliente", e);
                 }
             }
@@ -102,6 +108,12 @@ public class ServerHandler extends Thread {
                     return handleUpdateUser(message);
                 case "usuario_deletar":
                     return handleDeleteUser(message);
+                case "transacao_criar":
+                    return handleTransfer(message);
+                case "depositar":
+                    return handleDeposit(message);
+                case "transacao_ler":
+                    return handleTransacaoLer(message);
                 default:
                     return MessageBuilder.buildErrorResponse(operation, "Operação não suportada");
             }
@@ -119,14 +131,16 @@ public class ServerHandler extends Thread {
             String cpf = node.get("cpf").asText();
             String senha = node.get("senha").asText();
             
-            if (dbManager.authenticateUser(cpf, senha)) {
+                if (dbManager.authenticateUser(cpf, senha)) {
                 Usuario user = dbManager.getUser(cpf);
                 String token = TokenManager.generateToken(cpf);
                 
                 // Atualiza informações do cliente
                 clientInfo.setCpfUsuario(cpf);
                 clientInfo.setNomeUsuario(user.getNome());
-                serverGUI.updateConnectedClients();
+                if (this.serverGUI != null) {
+                    serverGUI.updateConnectedClients();
+                }
                 
                 return MessageBuilder.buildSuccessResponse("usuario_login", "Login realizado com sucesso", token);
             } else {
@@ -177,7 +191,9 @@ public class ServerHandler extends Thread {
             }
             
             if (dbManager.createUser(cpf, nome, senha)) {
-                serverGUI.updateDatabaseView();
+                if (this.serverGUI != null) {
+                    serverGUI.updateDatabaseView();
+                }
                 return MessageBuilder.buildSuccessResponse("usuario_criar", "Usuário criado com sucesso");
             } else {
                 return MessageBuilder.buildErrorResponse("usuario_criar", "Erro ao criar usuário");
@@ -258,8 +274,12 @@ public class ServerHandler extends Thread {
                 // Remove informações do usuário do cliente
                 clientInfo.setCpfUsuario(null);
                 clientInfo.setNomeUsuario(null);
-                serverGUI.updateConnectedClients();
-                serverGUI.updateDatabaseView();
+                if (this.serverGUI != null) {
+                    serverGUI.updateConnectedClients();
+                }
+                if (this.serverGUI != null) {
+                    serverGUI.updateDatabaseView();
+                }
                 
                 return MessageBuilder.buildSuccessResponse("usuario_deletar", "Usuário deletado com sucesso");
             } else {
@@ -268,6 +288,120 @@ public class ServerHandler extends Thread {
         } catch (Exception e) {
             logger.error("Erro ao deletar usuário", e);
             return MessageBuilder.buildErrorResponse("usuario_deletar", "Erro interno ao deletar usuário");
+        }
+    }
+
+    private String handleTransfer(String message) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
+
+            String token = node.get("token").asText();
+            String cpfOrigem = TokenManager.getCpfFromToken(token);
+            if (cpfOrigem == null) {
+                return MessageBuilder.buildErrorResponse("transacao_transferir", "Token inválido ou expirado");
+            }
+
+            String cpfDestino = node.get("cpf_destino").asText();
+            double valor = node.get("valor").asDouble();
+
+            if (!dbManager.userExists(cpfDestino)) {
+                return MessageBuilder.buildErrorResponse("transacao_transferir", "Usuário destino não encontrado");
+            }
+
+            boolean ok = dbManager.createTransfer(cpfOrigem, cpfDestino, valor);
+            if (ok) {
+                if (this.serverGUI != null) {
+                    serverGUI.updateDatabaseView();
+                    serverGUI.addLogMessage(String.format("Transferência: %s -> %s : R$ %.2f", cpfOrigem, cpfDestino, valor));
+                }
+                return MessageBuilder.buildSuccessResponse("transacao_criar", "Transferência realizada com sucesso");
+            } else {
+                return MessageBuilder.buildErrorResponse("transacao_criar", "Erro ao realizar transferência (saldo insuficiente ou usuário inválido)");
+            }
+        } catch (Exception e) {
+            logger.error("Erro ao processar transferência", e);
+            return MessageBuilder.buildErrorResponse("transacao_transferir", "Erro interno ao processar transferência");
+        }
+    }
+
+    private String handleDeposit(String message) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
+
+            String token = node.get("token").asText();
+            String cpf = TokenManager.getCpfFromToken(token);
+            if (cpf == null) {
+                return MessageBuilder.buildErrorResponse("transacao_depositar", "Token inválido ou expirado");
+            }
+
+            // canonical protocol sends deposit amount in 'valor_enviado'
+            double valor = node.has("valor_enviado") ? node.get("valor_enviado").asDouble() : node.get("valor").asDouble();
+
+            boolean ok = dbManager.createDeposit(cpf, valor);
+            if (ok) {
+                if (this.serverGUI != null) {
+                    serverGUI.updateDatabaseView();
+                    serverGUI.addLogMessage(String.format("Depósito: %s : R$ %.2f", cpf, valor));
+                }
+                return MessageBuilder.buildSuccessResponse("depositar", "Depósito realizado com sucesso");
+            } else {
+                return MessageBuilder.buildErrorResponse("depositar", "Erro ao realizar depósito");
+            }
+        } catch (Exception e) {
+            logger.error("Erro ao processar depósito", e);
+            return MessageBuilder.buildErrorResponse("transacao_depositar", "Erro interno ao processar depósito");
+        }
+    }
+
+    private String handleTransacaoLer(String message) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
+
+            String token = node.get("token").asText();
+            String cpf = TokenManager.getCpfFromToken(token);
+            if (cpf == null) {
+                return MessageBuilder.buildErrorResponse("transacao_ler", "Token inválido ou expirado");
+            }
+
+            String dataInicial = node.has("data_inicial") ? node.get("data_inicial").asText() : null;
+            String dataFinal = node.has("data_final") ? node.get("data_final").asText() : null;
+
+            if (dataInicial == null || dataFinal == null) {
+                return MessageBuilder.buildErrorResponse("transacao_ler", "data_inicial e data_final são obrigatórias");
+            }
+
+            java.time.Instant inicio;
+            java.time.Instant fim;
+            try {
+                inicio = java.time.Instant.parse(dataInicial);
+                fim = java.time.Instant.parse(dataFinal);
+            } catch (Exception e) {
+                return MessageBuilder.buildErrorResponse("transacao_ler", "Formato de data inválido. Use ISO 8601 UTC");
+            }
+
+            long days = java.time.Duration.between(inicio, fim).toDays();
+            if (days < 0 || days > 31) {
+                return MessageBuilder.buildErrorResponse("transacao_ler", "Intervalo de data inválido (máximo 31 dias)");
+            }
+
+            // Busca todas as transações e filtra pelo período (DB stores timestamps as LocalDateTime strings)
+            java.util.List<com.distribuidos.common.Transacao> all = dbManager.getAllTransacoes();
+            java.util.List<com.distribuidos.common.Transacao> filtered = new java.util.ArrayList<>();
+            for (com.distribuidos.common.Transacao t : all) {
+                if (t.getTimestamp() == null) continue;
+                java.time.Instant ts = t.getTimestamp().atZone(java.time.ZoneId.systemDefault()).toInstant();
+                if (!ts.isBefore(inicio) && !ts.isAfter(fim)) {
+                    filtered.add(t);
+                }
+            }
+
+            return MessageBuilder.buildTransacoesResponse("transacao_ler", "Transações recuperadas com sucesso.", filtered);
+        } catch (Exception e) {
+            logger.error("Erro ao processar transacao_ler", e);
+            return MessageBuilder.buildErrorResponse("transacao_ler", "Erro interno ao ler transações");
         }
     }
     
@@ -289,8 +423,10 @@ public class ServerHandler extends Thread {
                 TokenManager.removeTokenForCpf(clientInfo.getCpfUsuario());
             }
             
-            serverGUI.addLogMessage("Cliente desconectado: " + clientInfo.getIp() + ":" + clientInfo.getPorta());
-            serverGUI.updateConnectedClients();
+            if (this.serverGUI != null) {
+                serverGUI.addLogMessage("Cliente desconectado: " + clientInfo.getIp() + ":" + clientInfo.getPorta());
+                serverGUI.updateConnectedClients();
+            }
             
             if (in != null) in.close();
             if (out != null) out.close();

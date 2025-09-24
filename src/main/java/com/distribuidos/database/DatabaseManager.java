@@ -40,7 +40,16 @@ public class DatabaseManager {
             
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute(createTableSQL);
-                logger.info("Tabela de usuários criada/verificada com sucesso");
+                // Create transactions table
+                String createTransacoes = "CREATE TABLE IF NOT EXISTS transacoes (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "cpf_origem TEXT," +
+                    "cpf_destino TEXT," +
+                    "valor REAL NOT NULL," +
+                    "timestamp TEXT NOT NULL" +
+                    ")";
+                stmt.execute(createTransacoes);
+                logger.info("Tabelas de usuários e transações criadas/verificadas com sucesso");
             }
         } catch (SQLException e) {
             logger.error("Erro ao inicializar banco de dados", e);
@@ -77,10 +86,194 @@ public class DatabaseManager {
                 createUser("753.486.159-89", "Gabriela Costa Ribeiro", "gabriela159");
                 
                 logger.info("Banco de dados populado com {} usuários de teste", countUsers());
+                // Seed a richer set of sample transactions for demonstration
+                try {
+                    // some deposits
+                    createDeposit("123.456.789-01", 500.00);
+                    createDeposit("987.654.321-02", 300.00);
+                    createDeposit("111.222.333-44", 200.00);
+                    createDeposit("555.666.777-88", 150.00);
+
+                    // a sequence of transfers between users
+                    createTransfer("123.456.789-01", "987.654.321-02", 120.00);
+                    createTransfer("987.654.321-02", "111.222.333-44", 50.00);
+                    createTransfer("111.222.333-44", "555.666.777-88", 25.50);
+                    createTransfer("555.666.777-88", "444.555.666-77", 10.00);
+                    createTransfer("444.555.666-77", "333.444.555-66", 5.75);
+                    createTransfer("333.444.555-66", "222.333.444-55", 30.00);
+                    createTransfer("222.333.444-55", "666.777.888-99", 15.00);
+
+                    // additional mixed activity
+                    createTransfer("666.777.888-99", "777.888.999-00", 45.00);
+                    createTransfer("777.888.999-00", "888.999.000-11", 60.00);
+                    createDeposit("999.000.111-22", 250.00);
+                    createTransfer("999.000.111-22", "000.111.222-33", 100.00);
+                    createTransfer("000.111.222-33", "147.258.369-12", 20.00);
+                    createTransfer("147.258.369-12", "258.369.147-23", 10.00);
+                    createTransfer("258.369.147-23", "369.147.258-34", 7.00);
+                    createTransfer("369.147.258-34", "741.852.963-45", 12.34);
+                    createTransfer("741.852.963-45", "852.963.741-56", 9.99);
+                    createTransfer("852.963.741-56", "963.741.852-67", 4.00);
+                    createTransfer("963.741.852-67", "159.753.486-78", 3.50);
+                    createTransfer("159.753.486-78", "753.486.159-89", 2.25);
+
+                    logger.info("Transações semeadas com sucesso");
+                } catch (Exception e) {
+                    logger.warn("Erro ao semear transações: {}", e.getMessage());
+                }
+            }
+
+            // If there are no transactions yet, seed them (covers cases where users exist but transacoes is empty)
+            if (countTransacoes() == 0) {
+                logger.info("Nenhuma transação encontrada; semeando transações de exemplo...");
+                seedTransacoes();
             }
         } catch (Exception e) {
             logger.warn("Erro ao popular banco de dados: " + e.getMessage());
         }
+    }
+
+    private void seedTransacoes() {
+        try {
+            // some deposits
+            createDeposit("123.456.789-01", 500.00);
+            createDeposit("987.654.321-02", 300.00);
+            createDeposit("111.222.333-44", 200.00);
+            createDeposit("555.666.777-88", 150.00);
+
+            // a sequence of transfers between users
+            createTransfer("123.456.789-01", "987.654.321-02", 120.00);
+            createTransfer("987.654.321-02", "111.222.333-44", 50.00);
+            createTransfer("111.222.333-44", "555.666.777-88", 25.50);
+            createTransfer("555.666.777-88", "444.555.666-77", 10.00);
+            createTransfer("444.555.666-77", "333.444.555-66", 5.75);
+            createTransfer("333.444.555-66", "222.333.444-55", 30.00);
+            createTransfer("222.333.444-55", "666.777.888-99", 15.00);
+
+            // additional mixed activity
+            createTransfer("666.777.888-99", "777.888.999-00", 45.00);
+            createTransfer("777.888.999-00", "888.999.000-11", 60.00);
+            createDeposit("999.000.111-22", 250.00);
+            createTransfer("999.000.111-22", "000.111.222-33", 100.00);
+            createTransfer("000.111.222-33", "147.258.369-12", 20.00);
+            createTransfer("147.258.369-12", "258.369.147-23", 10.00);
+            createTransfer("258.369.147-23", "369.147.258-34", 7.00);
+            createTransfer("369.147.258-34", "741.852.963-45", 12.34);
+            createTransfer("741.852.963-45", "852.963.741-56", 9.99);
+            createTransfer("852.963.741-56", "963.741.852-67", 4.00);
+            createTransfer("963.741.852-67", "159.753.486-78", 3.50);
+            createTransfer("159.753.486-78", "753.486.159-89", 2.25);
+
+            logger.info("Transações semeadas com sucesso");
+        } catch (Exception e) {
+            logger.warn("Erro ao semear transações: {}", e.getMessage());
+        }
+    }
+
+    // Transaction-related methods
+    public boolean createDeposit(String cpfDestino, double valor) {
+        return performAtomicTransfer(null, cpfDestino, valor);
+    }
+
+    public boolean createTransfer(String cpfOrigem, String cpfDestino, double valor) {
+        return performAtomicTransfer(cpfOrigem, cpfDestino, valor);
+    }
+
+    private boolean performAtomicTransfer(String cpfOrigem, String cpfDestino, double valor) {
+        String selectSql = "SELECT saldo FROM usuarios WHERE cpf = ?";
+        String updateSql = "UPDATE usuarios SET saldo = ?, atualizado_em = ? WHERE cpf = ?";
+        String insertTransSql = "INSERT INTO transacoes (cpf_origem, cpf_destino, valor, timestamp) VALUES (?, ?, ?, ?)";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            conn.setAutoCommit(false);
+
+            // If origem provided, check balance
+            double origemSaldo = 0.0;
+            if (cpfOrigem != null) {
+                try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+                    ps.setString(1, cpfOrigem);
+                    ResultSet rs = ps.executeQuery();
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return false;
+                    }
+                    origemSaldo = rs.getDouble("saldo");
+                    if (origemSaldo < valor) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+            }
+
+            // Deduct origem
+            if (cpfOrigem != null) {
+                double newOrigem = origemSaldo - valor;
+                try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                    ps.setDouble(1, newOrigem);
+                    ps.setString(2, java.time.LocalDateTime.now().toString());
+                    ps.setString(3, cpfOrigem);
+                    ps.executeUpdate();
+                }
+            }
+
+            // Credit destino
+            try (PreparedStatement psSelect = conn.prepareStatement(selectSql)) {
+                psSelect.setString(1, cpfDestino);
+                ResultSet rs = psSelect.executeQuery();
+                if (!rs.next()) {
+                    conn.rollback();
+                    return false;
+                }
+                double destinoSaldo = rs.getDouble("saldo");
+                double newDestino = destinoSaldo + valor;
+                try (PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
+                    psUpdate.setDouble(1, newDestino);
+                    psUpdate.setString(2, java.time.LocalDateTime.now().toString());
+                    psUpdate.setString(3, cpfDestino);
+                    psUpdate.executeUpdate();
+                }
+            }
+
+            // Insert transaction record
+            try (PreparedStatement psTrans = conn.prepareStatement(insertTransSql)) {
+                psTrans.setString(1, cpfOrigem);
+                psTrans.setString(2, cpfDestino);
+                psTrans.setDouble(3, valor);
+                psTrans.setString(4, java.time.LocalDateTime.now().toString());
+                psTrans.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            logger.error("Erro ao realizar transação", e);
+            return false;
+        }
+    }
+
+    public java.util.List<com.distribuidos.common.Transacao> getAllTransacoes() {
+        java.util.List<com.distribuidos.common.Transacao> list = new java.util.ArrayList<>();
+        String sql = "SELECT * FROM transacoes ORDER BY id DESC";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                long id = rs.getLong("id");
+                String origem = rs.getString("cpf_origem");
+                String destino = rs.getString("cpf_destino");
+                double valor = rs.getDouble("valor");
+                java.time.LocalDateTime ts = java.time.LocalDateTime.parse(rs.getString("timestamp"));
+
+                com.distribuidos.common.Transacao t = new com.distribuidos.common.Transacao(id, origem, destino, valor, ts);
+                list.add(t);
+            }
+        } catch (SQLException e) {
+            logger.error("Erro ao buscar transações", e);
+        }
+
+        return list;
     }
     
     public boolean createUser(String cpf, String nome, String senha) {
@@ -236,6 +429,20 @@ public class DatabaseManager {
             logger.error("Erro ao contar usuários", e);
         }
         
+        return 0;
+    }
+
+    public int countTransacoes() {
+        String sql = "SELECT COUNT(*) FROM transacoes";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            logger.error("Erro ao contar transações", e);
+        }
         return 0;
     }
     

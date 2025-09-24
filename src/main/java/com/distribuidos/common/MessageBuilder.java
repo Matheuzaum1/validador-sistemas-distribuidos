@@ -63,6 +63,25 @@ public class MessageBuilder {
         message.put("token", token);
         return toJson(message);
     }
+
+    // Mensagens de transação
+    public static String buildTransferMessage(String token, String cpfDestino, double valor) {
+        Map<String, Object> message = new HashMap<>();
+        message.put("operacao", "transacao_criar");
+        message.put("token", token);
+        message.put("cpf_destino", cpfDestino);
+        message.put("valor", valor);
+        return toJson(message);
+    }
+
+    public static String buildDepositMessage(String token, double valor) {
+        Map<String, Object> message = new HashMap<>();
+        message.put("operacao", "depositar");
+        message.put("token", token);
+        // canonical protocol expects 'valor_enviado' for deposits
+        message.put("valor_enviado", valor);
+        return toJson(message);
+    }
     
     // Métodos para construir respostas do servidor
     public static String buildSuccessResponse(String operacao, String info) {
@@ -92,6 +111,46 @@ public class MessageBuilder {
             }
         }
         
+        return toJson(response);
+    }
+
+    public static String buildTransacoesResponse(String operacao, String info, java.util.List<com.distribuidos.common.Transacao> transacoes) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("operacao", operacao);
+        response.put("status", true);
+        response.put("info", info);
+
+        java.util.List<Map<String, Object>> arr = new java.util.ArrayList<>();
+        if (transacoes != null) {
+            for (com.distribuidos.common.Transacao t : transacoes) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("id", t.getId());
+                item.put("valor_enviado", t.getValor());
+
+                Map<String, Object> enviador = new HashMap<>();
+                enviador.put("nome", null);
+                enviador.put("cpf", t.getCpfOrigem());
+                item.put("usuario_enviador", enviador);
+
+                Map<String, Object> recebedor = new HashMap<>();
+                recebedor.put("nome", null);
+                recebedor.put("cpf", t.getCpfDestino());
+                item.put("usuario_recebedor", recebedor);
+
+                // Use ISO 8601 UTC-ish representation for timestamps
+                if (t.getTimestamp() != null) {
+                    item.put("criado_em", t.getTimestamp().toString() + "Z");
+                    item.put("atualizado_em", t.getTimestamp().toString() + "Z");
+                } else {
+                    item.put("criado_em", null);
+                    item.put("atualizado_em", null);
+                }
+
+                arr.add(item);
+            }
+        }
+
+        response.put("transacoes", arr);
         return toJson(response);
     }
     

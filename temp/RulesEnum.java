@@ -46,4 +46,4 @@ public enum RulesEnum {
         throw new IllegalArgumentException("Nenhuma regra encontrada para o valor: " + rule);
     }
 
-}  
+}   
