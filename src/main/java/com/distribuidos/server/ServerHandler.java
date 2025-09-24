@@ -13,9 +13,13 @@ import java.io.*;
 import java.net.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ServerHandler extends Thread {
     private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
+    // Executor to perform reverse DNS lookups asynchronously to avoid blocking the handler thread
+    private static final ExecutorService DNS_RESOLVER = Executors.newCachedThreadPool();
     private final Socket clientSocket;
     private final ServerGUI serverGUI;
     private final DatabaseManager dbManager;
@@ -42,6 +46,22 @@ public class ServerHandler extends Thread {
             this.clientInfo = new ClientInfo(clientIP, clientPort, hostname);
             String clientKey = clientIP + ":" + clientPort;
             connectedClients.put(clientKey, clientInfo);
+
+            // Resolve reverse DNS asynchronously to avoid blocking accept/handler startup
+            DNS_RESOLVER.submit(() -> {
+                try {
+                    InetAddress addr = InetAddress.getByName(clientIP);
+                    String resolved = addr.getCanonicalHostName();
+                    if (resolved != null && !resolved.isEmpty() && !resolved.equals(clientIP)) {
+                        clientInfo.setHostname(resolved);
+                        if (this.serverGUI != null) {
+                            serverGUI.updateConnectedClients();
+                        }
+                    }
+                } catch (Exception ignored) {
+                    // Ignore DNS resolution failures; keep IP/initial hostname as fallback
+                }
+            });
 
             if (this.serverGUI != null) {
                 serverGUI.addLogMessage("Cliente conectado: " + clientIP + ":" + clientPort);

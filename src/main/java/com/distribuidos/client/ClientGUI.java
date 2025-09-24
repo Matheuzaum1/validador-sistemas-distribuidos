@@ -130,9 +130,9 @@ public class ClientGUI extends JFrame {
         
         panel.add(fieldsPanel, BorderLayout.CENTER);
         
-        connectionStatusLabel = new JLabel("Status: Desconectado");
-        connectionStatusLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
-        connectionStatusLabel.setForeground(Color.RED);
+    connectionStatusLabel = new JLabel("Status: Desconectado");
+    connectionStatusLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+    connectionStatusLabel.setForeground(Color.RED);
         panel.add(connectionStatusLabel, BorderLayout.SOUTH);
         
         return panel;
@@ -238,7 +238,7 @@ public class ClientGUI extends JFrame {
             
             if (connection.connect(host, port)) {
                 connectionStatusLabel.setText("Status: Conectado a " + host + ":" + port);
-                connectionStatusLabel.setForeground(Color.GREEN);
+                connectionStatusLabel.setForeground(new Color(0, 128, 0)); // darker green for better contrast
                 updateUI();
             } else {
                 JOptionPane.showMessageDialog(this, "Falha ao conectar ao servidor", 
@@ -287,7 +287,7 @@ public class ClientGUI extends JFrame {
                 isLoggedIn = true;
                 
                 userInfoLabel.setText("Usuário: " + cpfField.getText() + " (Logado)");
-                userInfoLabel.setForeground(Color.GREEN);
+                userInfoLabel.setForeground(new Color(0, 70, 140)); // dark blue for readability
                 
                 JOptionPane.showMessageDialog(this, "Login realizado com sucesso!", 
                     "Sucesso", JOptionPane.INFORMATION_MESSAGE);

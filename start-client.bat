@@ -5,7 +5,7 @@ echo.
 REM Compila o projeto se necessario
 if not exist "target\classes" (
     echo Compilando projeto...
-    mvn clean compile
+    mvn -DskipTests package
     if errorlevel 1 (
         echo Erro na compilacao!
         pause
@@ -14,9 +14,9 @@ if not exist "target\classes" (
 )
 
 REM Baixa dependencias se necessario
-if not exist "target\dependency" (
-    echo Baixando dependencias...
-    mvn dependency:copy-dependencies
+if not exist "target\lib" (
+    echo Baixando dependencias para target\lib...
+    mvn dependency:copy-dependencies -DoutputDirectory=target/lib
     if errorlevel 1 (
         echo Erro ao baixar dependencias!
         pause
@@ -28,6 +28,6 @@ echo Iniciando cliente...
 echo Para parar o cliente, feche a janela da aplicacao.
 echo.
 
-java -cp "target/classes;target/dependency/*" com.distribuidos.client.ClientMain
+java -cp "target/classes;target/lib/*" com.distribuidos.client.ClientMain
 
 pause

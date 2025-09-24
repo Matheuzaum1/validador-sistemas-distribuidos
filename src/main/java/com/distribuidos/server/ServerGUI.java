@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ServerGUI extends JFrame {
     private static final Logger logger = LoggerFactory.getLogger(ServerGUI.class);
+    private static final Color OK_COLOR = new Color(0, 128, 0); // darker green for better contrast
     
     private JTextArea logArea;
     private JTextField portField;
@@ -107,9 +108,9 @@ public class ServerGUI extends JFrame {
         // Painel central - Informações e Status
         JPanel infoPanel = new JPanel(new GridLayout(2, 1));
         
-        statusLabel = new JLabel("Status: Parado");
+    statusLabel = new JLabel("Status: Parado");
         statusLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
-        statusLabel.setForeground(Color.RED);
+    statusLabel.setForeground(Color.RED);
         infoPanel.add(statusLabel);
         
         serverInfoLabel = new JLabel();
@@ -155,6 +156,18 @@ public class ServerGUI extends JFrame {
         clientsTable = new JTable(clientsTableModel);
         clientsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         clientsTable.getTableHeader().setReorderingAllowed(false);
+        // Renderer to show tooltip with full hostname/IP when hovered
+        clientsTable.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (c instanceof javax.swing.JComponent) {
+                    javax.swing.JComponent jc = (javax.swing.JComponent) c;
+                    jc.setToolTipText(value != null ? value.toString() : null);
+                }
+                return c;
+            }
+        });
         
         JScrollPane scrollPane = new JScrollPane(clientsTable);
         panel.add(scrollPane, BorderLayout.CENTER);
@@ -250,8 +263,8 @@ public class ServerGUI extends JFrame {
             stopButton.setEnabled(true);
             portField.setEnabled(false);
             
-            statusLabel.setText("Status: Executando");
-            statusLabel.setForeground(Color.GREEN);
+                statusLabel.setText("Status: Executando");
+                statusLabel.setForeground(OK_COLOR);
             
             addLogMessage("Servidor iniciado na porta " + port);
             updateServerInfo();
@@ -324,10 +337,19 @@ public class ServerGUI extends JFrame {
                 SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
                 String conectadoEm = sdf.format(new Date(client.getConectadoEm()));
                 
+                String ip = client.getIp();
+                String hostname = client.getHostname();
+                String hostDisplay;
+                if (hostname != null && !hostname.isEmpty() && !hostname.equals(ip)) {
+                    hostDisplay = String.format("%s (%s)", hostname, ip);
+                } else {
+                    hostDisplay = ip;
+                }
+
                 Object[] row = {
-                    client.getIp(),
+                    ip,
                     client.getPorta(),
-                    client.getHostname(),
+                    hostDisplay,
                     client.getCpfUsuario() != null ? client.getCpfUsuario() : "Não logado",
                     client.getNomeUsuario() != null ? client.getNomeUsuario() : "Não logado",
                     conectadoEm
@@ -412,17 +434,46 @@ public class ServerGUI extends JFrame {
     
     private void updateServerInfo() {
         try {
-            InetAddress localhost = InetAddress.getLocalHost();
-            String hostName = localhost.getHostName();
-            String hostAddress = localhost.getHostAddress();
-            
+            // Try to find a non-loopback IPv4 address for display. Fall back to localhost when necessary.
+            String hostName = null;
+            String hostAddress = null;
+
+            java.util.Enumeration<java.net.NetworkInterface> interfaces = java.net.NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                java.net.NetworkInterface ni = interfaces.nextElement();
+                try {
+                    if (!ni.isUp() || ni.isLoopback() || ni.isVirtual()) continue;
+                } catch (Exception ex) {
+                    continue;
+                }
+
+                java.util.Enumeration<java.net.InetAddress> addrs = ni.getInetAddresses();
+                while (addrs.hasMoreElements()) {
+                    java.net.InetAddress addr = addrs.nextElement();
+                    if (addr instanceof java.net.Inet4Address && !addr.isLoopbackAddress() && !addr.isLinkLocalAddress()) {
+                        hostAddress = addr.getHostAddress();
+                        try { hostName = addr.getHostName(); } catch (Exception ignored) {}
+                        break;
+                    }
+                }
+
+                if (hostAddress != null) break;
+            }
+
+            if (hostAddress == null) {
+                InetAddress localhost = InetAddress.getLocalHost();
+                hostName = localhost.getHostName();
+                hostAddress = localhost.getHostAddress();
+            }
+
             String info = String.format(
                 "<html>Hostname: %s<br/>IP Local: %s<br/>Porta: %s<br/>Usuários no DB: %d</html>",
-                hostName, hostAddress, 
+                hostName != null ? hostName : "N/A",
+                hostAddress != null ? hostAddress : "N/A",
                 isRunning ? portField.getText() : "N/A",
                 dbManager.countUsers()
             );
-            
+
             serverInfoLabel.setText(info);
         } catch (Exception e) {
             logger.error("Erro ao obter informações do servidor", e);
