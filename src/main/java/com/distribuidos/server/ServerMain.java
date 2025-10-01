@@ -9,6 +9,10 @@ public class ServerMain {
     private static final Logger logger = LoggerFactory.getLogger(ServerMain.class);
     
     public static void main(String[] args) {
+        // Configurar encoding para UTF-8
+        System.setProperty("file.encoding", "UTF-8");
+        System.setProperty("java.awt.fonts", "true");
+        
         // Configura Look and Feel
         try {
             for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {

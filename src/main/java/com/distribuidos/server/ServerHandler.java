@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -35,8 +36,8 @@ public class ServerHandler extends Thread {
         this.connectedClients = connectedClients;
         
         try {
-            this.in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            this.out = new PrintWriter(clientSocket.getOutputStream(), true);
+            this.in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), StandardCharsets.UTF_8));
+            this.out = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8), true);
             
             // Cria informações do cliente
             String clientIP = clientSocket.getInetAddress().getHostAddress();
@@ -134,6 +135,8 @@ public class ServerHandler extends Thread {
                     return handleDeposit(message);
                 case "transacao_ler":
                     return handleTransacaoLer(message);
+                case "conectar":
+                    return handleConnect(message);
                 default:
                     return MessageBuilder.buildErrorResponse(operation, "Operação não suportada");
             }
@@ -422,6 +425,16 @@ public class ServerHandler extends Thread {
         } catch (Exception e) {
             logger.error("Erro ao processar transacao_ler", e);
             return MessageBuilder.buildErrorResponse("transacao_ler", "Erro interno ao ler transações");
+        }
+    }
+    
+    private String handleConnect(String message) {
+        try {
+            // A operação conectar simplesmente confirma que a conexão foi estabelecida
+            return MessageBuilder.buildSuccessResponse("conectar", "Servidor conectado com sucesso");
+        } catch (Exception e) {
+            logger.error("Erro ao processar conectar", e);
+            return MessageBuilder.buildErrorResponse("conectar", "Erro ao se conectar");
         }
     }
     

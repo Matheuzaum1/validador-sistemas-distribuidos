@@ -14,7 +14,9 @@ public enum RulesEnum {
     // CR(UD) da transação
     TRANSACAO_CRIAR("transacao_criar"),
     TRANSACAO_LER("transacao_ler"), // É literalmente o envio de um 'getTransacao()' para o servidor, porém os parâmetros influenciam
-    DEPOSITAR("depositar");
+    DEPOSITAR("depositar"),
+    // Conectar com servidor
+    CONECTAR("conectar");
 
     RulesEnum(String rule) {
         this.rule = rule;

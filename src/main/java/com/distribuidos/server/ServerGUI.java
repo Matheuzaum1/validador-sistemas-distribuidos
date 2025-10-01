@@ -125,7 +125,10 @@ public class ServerGUI extends JFrame {
         
         logArea = new JTextArea(15, 50);
         logArea.setEditable(false);
-        logArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        // Configurar fonte que suporte caracteres UTF-8
+        logArea.setFont(new Font("Dialog", Font.PLAIN, 12));
+        // Garantir que a codificação seja UTF-8
+        logArea.getDocument().putProperty("i18n", Boolean.TRUE);
         JScrollPane logScrollPane = new JScrollPane(logArea);
         logScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         

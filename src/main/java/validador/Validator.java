@@ -57,6 +57,9 @@ public class Validator {
             case DEPOSITAR:
                 validateDepositarClient(rootNode);
                 break;
+            case CONECTAR:
+                validateConectarClient(rootNode);
+                break;
             // =======================================================
             default:
                 throw new IllegalArgumentException("Operação do cliente desconhecida ou não suportada: " + operacao);
@@ -96,6 +99,9 @@ public class Validator {
                     break;
                 case TRANSACAO_LER:
                     validateTransacaoLerServer(rootNode);
+                    break;
+                case CONECTAR:
+                    validateConectarServer(rootNode);
                     break;
                 // Outras operações de sucesso (como criar, atualizar, deletar e depositar)
                 // não retornam dados adicionais, então não precisam de validação extra.
@@ -163,6 +169,11 @@ public class Validator {
         validateStringLength(node, "token", 3, 200);
         getRequiredNumber(node, "valor_enviado");
     }
+
+    private static void validateConectarClient(JsonNode node) {
+        // A operação conectar não requer campos adicionais além de 'operacao'
+        // Já validamos que 'operacao' existe e tem o valor correto
+    }
     // =======================================================
 
     // ===================================================================================
@@ -200,6 +211,11 @@ public class Validator {
             validateDateFormat(transacao, "criado_em");
             validateDateFormat(transacao, "atualizado_em");
         }
+    }
+
+    private static void validateConectarServer(JsonNode node) {
+        // A resposta de conectar não requer campos adicionais além de 'operacao', 'status' e 'info'
+        // Estes já são validados no método validateServer principal
     }
 
     // ===================================================================================

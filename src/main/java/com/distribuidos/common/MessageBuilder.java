@@ -83,6 +83,12 @@ public class MessageBuilder {
         return toJson(message);
     }
     
+    public static String buildConnectMessage() {
+        Map<String, Object> message = new HashMap<>();
+        message.put("operacao", "conectar");
+        return toJson(message);
+    }
+    
     // Métodos para construir respostas do servidor
     public static String buildSuccessResponse(String operacao, String info) {
         Map<String, Object> response = new HashMap<>();

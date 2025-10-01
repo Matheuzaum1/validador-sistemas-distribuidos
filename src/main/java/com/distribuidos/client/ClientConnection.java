@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 
 public class ClientConnection {
     private static final Logger logger = LoggerFactory.getLogger(ClientConnection.class);
@@ -24,8 +25,8 @@ public class ClientConnection {
     public boolean connect(String serverHost, int serverPort) {
         try {
             socket = new Socket(serverHost, serverPort);
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            out = new PrintWriter(socket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+            out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
             connected = true;
             
             clientGUI.addLogMessage("Conectado ao servidor: " + serverHost + ":" + serverPort);
@@ -155,6 +156,11 @@ public class ClientConnection {
 
     public String deposit(String token, double valor) {
         String message = MessageBuilder.buildDepositMessage(token, valor);
+        return sendMessage(message);
+    }
+    
+    public String connectToServer() {
+        String message = MessageBuilder.buildConnectMessage();
         return sendMessage(message);
     }
 }
