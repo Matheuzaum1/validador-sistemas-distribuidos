@@ -2,6 +2,9 @@
 echo Iniciando Servidor do Sistema Distribuido...
 echo.
 
+REM Define JAVA_HOME para Java 21+
+set JAVA_HOME=C:\Program Files\Java\jdk-25
+
 REM Compila o projeto se necessario
 if not exist "target\classes" (
     echo Compilando projeto...
