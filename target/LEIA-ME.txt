@@ -1,0 +1,50 @@
+# Pacote de Distribuição - Sistema Validador de Sistemas Distribuídos
+
+## Arquivos Incluídos
+
+### Executáveis Principais:
+- `validador-sistemas-distribuidos-1.0.0-server.jar` - Servidor (16.6 MB)
+- `validador-sistemas-distribuidos-1.0.0-client.jar` - Cliente (16.6 MB)
+
+### Scripts de Execução:
+- `executar.bat` - Menu interativo para Windows
+- `executar.sh` - Menu interativo para Linux/macOS
+
+### Documentação:
+- `DISTRIBUICAO.md` - Guia completo de instalação e uso
+
+## Execução Rápida
+
+### Windows:
+1. Abra o cmd ou PowerShell na pasta dos arquivos
+2. Execute: `executar.bat`
+3. Escolha a opção desejada no menu
+
+### Linux/macOS:
+1. Abra o terminal na pasta dos arquivos
+2. Execute: `chmod +x executar.sh` (apenas na primeira vez)
+3. Execute: `./executar.sh`
+4. Escolha a opção desejada no menu
+
+### Execução Manual:
+```bash
+# Servidor
+java -jar validador-sistemas-distribuidos-1.0.0-server.jar
+
+# Cliente
+java -jar validador-sistemas-distribuidos-1.0.0-client.jar
+```
+
+## Requisitos
+- Java 21 ou superior
+- 512 MB RAM mínimo
+- Porta 12345 disponível (para o servidor)
+
+## Teste Rápido
+1. Execute o servidor
+2. Execute o cliente em outra janela
+3. Conecte no cliente usando "localhost:12345"
+4. Teste as operações CRUD
+
+---
+Compilado em: Outubro 2025 | Versão: 1.0.0 | Java 21
