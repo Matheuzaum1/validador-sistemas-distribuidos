@@ -9,6 +9,7 @@ com\distribuidos\tools\HeadlessServerStarter.class
 com\distribuidos\tools\DbInspect.class
 com\distribuidos\server\ServerGUI$5.class
 com\newpix\server\gui\ServerGUI.class
+com\distribuidos\client\CpfFormatter.class
 com\newpix\server\NewPixServer.class
 com\distribuidos\client\ClientGUI.class
 com\distribuidos\client\ClientMain.class

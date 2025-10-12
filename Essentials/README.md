@@ -1,7 +1,9 @@
 
 # Protocolo de Mensagens - Sistema Bancário Simples
 
-Versão atual: 1.0
+Versão atual: 1.3
+
+Últimos tópicos atualizados: `4.6.` `7.3.`
 
 Um projeto para a disciplina de Sistemas Distribuídos que define um protocolo de comunicação baseado em JSON para as operações de um sistema bancário simplificado.
 
@@ -44,7 +46,7 @@ Para a correta manipulação das mensagens JSON, o projeto utiliza a biblioteca 
 - Para instalar as dependencias de fato, você deve clicar com o botão direito em seu projeto->Maven->Update Project, isso instalará as dependências.
 
 1.3 Possíveis Erros
-- Caso esteja instalando eclipse pela primeira vez, o erro "Downloading external resources is disabled. [DownloadResourceDisabled]" pode ocorrer, para consertar basta ir em Window->Preferences->Maven->Habilite os botões que dizem "donwload" e "uptade"->Apply
+- Caso esteja instalando eclipse pela primeira vez, o erro "Downloading external resources is disabled. [DownloadResourceDisabled]" pode ocorrer, para consertar basta ir em Window->Preferences->Maven->Habilite os botões que dizem "download" e "update"->Apply
 
 1.4 Recomendações
 - Utilizarem JDK a partir do 21
@@ -309,6 +311,8 @@ A seguir, a especificação detalhada para cada operação.
 
 ### 4.6. Deleção de Usuário (`usuario_deletar`)
 
+Ao deletar um usuário com sucesso a conexão entre o servidor e cliente se mantém.
+
 #### Envio (Cliente → Servidor)
 
 ```
@@ -482,7 +486,9 @@ O `valor_enviado` representa a quantidade que está sendo depositada.
 ```
 
 ### 4.10. Conectar com o servidor (`conectar`)
-Essa ação permite que o usuário se conecte com o servidor
+Essa ação permite que o usuário se conecte com o servidor e deve ser a primeira a ser chamada.
+
+Caso o usuário chame `conectar` novamente, mesmo já estando conectado, a operação deve ser bem-sucedida.
 
 #### Envio (Cliente → Servidor)
 
@@ -538,6 +544,17 @@ O que isso significa? Quando o cliente receber uma operação com o `status` com
 ### 5.2. Erros de JSON
 Caso o servidor envie uma mensagem que não contenha `operacao`, `status` ou `info`, ou o cliente envie uma mensagem que não contenha `operacao`,<br>o servidor/cliente que recebe devem retornar `null` para encerrar a conexão.
 
+### 5.3 Erros na conexão
+Caso a primeira `operacao` a ser recebida não seja `conectar` um erro deve ser retornado como:
+```
+{
+  "operacao": OPERACAO_QUE_FOI_RECEBIDA,
+  "status": false,
+  "info": "Erro, para receber uma operacao, a primeira operacao deve ser 'conectar'"
+}
+
+```
+
 ## 6. Tipagem de Dados
 
 | **Campo(s)**           | **Tipo de Dado** | **Descrição**                                                                                                                                                                                   |
@@ -556,7 +573,7 @@ As conexões quando criadas devem se manter até o final da sessão do usuário,
 - O cliente deve enviar uma operacao chamada `conectar` para o IP e a porta escolhida.
 - O servidor deve responder de acordo conforme o protocolo.
 ### 7.3. Desconexão.
-- Tanto o cliente como o servidor podem se desconectar enviando `null` caso alguma operação não cumpra o protocolo.
+- Tanto o cliente como o servidor podem se desconectar enviando `null` caso alguma operação não cumpra o protocolo e não haja alguma regra de retorno. (Ou caso apenas queira se desconectar)
 
 ## 8. Explicações adicionais e avisos
 

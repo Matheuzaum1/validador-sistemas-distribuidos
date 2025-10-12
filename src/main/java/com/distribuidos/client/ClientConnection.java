@@ -32,7 +32,26 @@ public class ClientConnection {
             clientGUI.addLogMessage("Conectado ao servidor: " + serverHost + ":" + serverPort);
             logger.info("Conectado ao servidor: {}:{}", serverHost, serverPort);
             
-            return true;
+            // Enviar mensagem de conexão conforme protocolo
+            try {
+                String response = connectToServer();
+                if (MessageBuilder.extractStatus(response)) {
+                    clientGUI.addLogMessage("Protocolo de conexão concluído com sucesso");
+                    logger.info("Protocolo de conexão concluído com sucesso");
+                    return true;
+                } else {
+                    clientGUI.addLogMessage("Falha no protocolo de conexão: " + MessageBuilder.extractInfo(response));
+                    logger.error("Falha no protocolo de conexão: {}", MessageBuilder.extractInfo(response));
+                    disconnect();
+                    return false;
+                }
+            } catch (Exception e) {
+                logger.error("Erro no protocolo de conexão", e);
+                clientGUI.addLogMessage("Erro no protocolo de conexão: " + e.getMessage());
+                disconnect();
+                return false;
+            }
+            
         } catch (IOException e) {
             logger.error("Erro ao conectar ao servidor", e);
             clientGUI.addLogMessage("Erro ao conectar: " + e.getMessage());

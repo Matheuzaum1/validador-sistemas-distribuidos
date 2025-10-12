@@ -49,7 +49,7 @@ public class DatabaseManager {
                     "timestamp TEXT NOT NULL" +
                     ")";
                 stmt.execute(createTransacoes);
-                logger.info("Tabelas de usuários e transações criadas/verificadas com sucesso");
+                logger.info("Tabelas de usuarios e transacoes criadas/verificadas com sucesso");
             }
         } catch (SQLException e) {
             logger.error("Erro ao inicializar banco de dados", e);

@@ -28,6 +28,7 @@ public class ServerHandler extends Thread {
     private BufferedReader in;
     private PrintWriter out;
     private ClientInfo clientInfo;
+    private boolean isFirstOperation = true;  // Para validar que a primeira operação seja 'conectar'
     
     public ServerHandler(Socket clientSocket, ServerGUI serverGUI, Map<String, ClientInfo> connectedClients) {
         this.clientSocket = clientSocket;
@@ -115,6 +116,12 @@ public class ServerHandler extends Thread {
     private String processMessage(String message) {
         try {
             String operation = MessageBuilder.extractOperation(message);
+            
+            // Verifica se a primeira operação é 'conectar'
+            if (isFirstOperation && !"conectar".equals(operation)) {
+                return MessageBuilder.buildErrorResponse(operation, 
+                    "Erro, para receber uma operacao, a primeira operacao deve ser 'conectar'");
+            }
             
             switch (operation) {
                 case "usuario_login":
@@ -430,6 +437,8 @@ public class ServerHandler extends Thread {
     
     private String handleConnect(String message) {
         try {
+            // Marca que a primeira operação foi recebida
+            isFirstOperation = false;
             // A operação conectar simplesmente confirma que a conexão foi estabelecida
             return MessageBuilder.buildSuccessResponse("conectar", "Servidor conectado com sucesso");
         } catch (Exception e) {

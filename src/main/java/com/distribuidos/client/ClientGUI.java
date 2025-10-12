@@ -159,7 +159,8 @@ public class ClientGUI extends JFrame {
         fieldsPanel.add(new JLabel("CPF:"), gbc);
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
         cpfField = new JTextField(20);
-        cpfField.setToolTipText("Formato: 000.000.000-00");
+        cpfField.setDocument(new CpfFormatter()); // Formatação automática de CPF
+        cpfField.setToolTipText("Digite apenas os números do CPF (ex: 12345678901)");
         fieldsPanel.add(cpfField, gbc);
         
         // Senha
@@ -559,7 +560,8 @@ public class ClientGUI extends JFrame {
         form.add(new JLabel("CPF Destino:"), gbc);
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
         JTextField cpfDestinoField = new JTextField(20);
-        cpfDestinoField.setToolTipText("Formato: 000.000.000-00");
+        cpfDestinoField.setDocument(new CpfFormatter()); // Formatação automática de CPF
+        cpfDestinoField.setToolTipText("Digite apenas os números do CPF (ex: 12345678901)");
         form.add(cpfDestinoField, gbc);
 
         gbc.gridx = 0; gbc.gridy = 1; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
