@@ -130,7 +130,8 @@ public class MessageBuilder {
         if (transacoes != null) {
             for (com.distribuidos.common.Transacao t : transacoes) {
                 Map<String, Object> item = new HashMap<>();
-                item.put("id", t.getId());
+                // Remove ID da resposta conforme feedback
+                // item.put("id", t.getId());
                 item.put("valor_enviado", t.getValor());
 
                 Map<String, Object> enviador = new HashMap<>();
@@ -164,10 +165,12 @@ public class MessageBuilder {
                 recebedor.put("cpf", cpfDest);
                 item.put("usuario_recebedor", recebedor);
 
-                // Use ISO 8601 UTC-ish representation for timestamps
+                // Formato de data corrigido: yyyy-MM-dd'T'HH:mm:ss'Z' (sem nanossegundos)
                 if (t.getTimestamp() != null) {
-                    item.put("criado_em", t.getTimestamp().toString() + "Z");
-                    item.put("atualizado_em", t.getTimestamp().toString() + "Z");
+                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+                    String formattedDate = t.getTimestamp().atZone(java.time.ZoneId.of("UTC")).format(formatter);
+                    item.put("criado_em", formattedDate);
+                    item.put("atualizado_em", formattedDate);
                 } else {
                     item.put("criado_em", null);
                     item.put("atualizado_em", null);

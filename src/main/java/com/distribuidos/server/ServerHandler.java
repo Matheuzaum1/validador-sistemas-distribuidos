@@ -417,11 +417,16 @@ public class ServerHandler extends Thread {
                 return MessageBuilder.buildErrorResponse("transacao_ler", "Intervalo de data inválido (máximo 31 dias)");
             }
 
-            // Busca todas as transações e filtra pelo período (DB stores timestamps as LocalDateTime strings)
+            // Busca apenas as transações do usuário logado e filtra pelo período
             java.util.List<com.distribuidos.common.Transacao> all = dbManager.getAllTransacoes();
             java.util.List<com.distribuidos.common.Transacao> filtered = new java.util.ArrayList<>();
             for (com.distribuidos.common.Transacao t : all) {
                 if (t.getTimestamp() == null) continue;
+                
+                // Filtrar apenas transações onde o usuário é origem OU destino
+                boolean isUserTransaction = cpf.equals(t.getCpfOrigem()) || cpf.equals(t.getCpfDestino());
+                if (!isUserTransaction) continue;
+                
                 java.time.Instant ts = t.getTimestamp().atZone(java.time.ZoneId.systemDefault()).toInstant();
                 if (!ts.isBefore(inicio) && !ts.isAfter(fim)) {
                     filtered.add(t);
