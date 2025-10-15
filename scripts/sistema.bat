@@ -1,90 +1,91 @@
 @echo off
-chcp 65001 > nul
 setlocal enabledelayedexpansion
 
 :: ===================================================================
-:: Sistema Validador - Distribuído
+:: Sistema Validador - Distribuido
 :: Script Principal de Gerenciamento
 :: ===================================================================
 
-set "PROJECT_NAME=Sistema Validador - Distribuído"
+set "PROJECT_NAME=Sistema Validador - Distribuido"
 set "VERSION=1.0.0"
 set "SERVER_JAR=target\validador-sistemas-distribuidos-1.0.0-server.jar"
 set "CLIENT_JAR=target\validador-sistemas-distribuidos-1.0.0-client.jar"
 set "MAIN_JAR=target\validador-sistemas-distribuidos-1.0.0.jar"
 
-:: Cores para output
-set "GREEN=[32m"
-set "RED=[31m"
-set "YELLOW=[33m"
-set "BLUE=[34m"
-set "RESET=[0m"
-
 :MAIN_MENU
 cls
 echo.
-echo %BLUE%=========================================%RESET%
-echo %BLUE%    %PROJECT_NAME%%RESET%
-echo %BLUE%            v%VERSION%%RESET%
-echo %BLUE%=========================================%RESET%
+echo =========================================
+echo     %PROJECT_NAME%
+echo             v%VERSION%
+echo =========================================
 echo.
-echo %GREEN%Opções disponíveis:%RESET%
+echo Opcoes disponiveis:
 echo.
-echo %YELLOW%1.%RESET% Compilar projeto
-echo %YELLOW%2.%RESET% Iniciar servidor
-echo %YELLOW%3.%RESET% Iniciar cliente
-echo %YELLOW%4.%RESET% Executar testes
-echo %YELLOW%5.%RESET% Limpar e recompilar
-echo %YELLOW%6.%RESET% Parar todos os processos Java
-echo %YELLOW%7.%RESET% Verificar status
-echo %YELLOW%8.%RESET% Ajuda
-echo %YELLOW%0.%RESET% Sair
+echo 1. Compilar projeto
+echo 2. Iniciar servidor
+echo 3. Iniciar cliente  
+echo 4. Executar testes
+echo 5. Limpar e recompilar
+echo 6. Parar todos os processos Java
+echo 7. Verificar status
+echo 8. Ajuda
+echo 0. Sair
 echo.
-set /p "choice=Digite sua escolha: "
+set /p "choice=Digite sua escolha (0-8): "
 
-if "%choice%"=="1" goto BUILD
-if "%choice%"=="2" goto SERVER
-if "%choice%"=="3" goto CLIENT
-if "%choice%"=="4" goto TEST
-if "%choice%"=="5" goto CLEAN
-if "%choice%"=="6" goto STOP
-if "%choice%"=="7" goto STATUS
-if "%choice%"=="8" goto HELP
+if "%choice%"=="1" call :BUILD
+if "%choice%"=="2" call :SERVER
+if "%choice%"=="3" call :CLIENT
+if "%choice%"=="4" call :TEST
+if "%choice%"=="5" call :CLEAN
+if "%choice%"=="6" call :STOP
+if "%choice%"=="7" call :STATUS
+if "%choice%"=="8" call :HELP
 if "%choice%"=="0" goto END
 
-echo %RED%Opção inválida! Tente novamente.%RESET%
+echo Opcao invalida! Tente novamente.
 pause
 goto MAIN_MENU
 
+:: ===================================================================
+:: FUNCOES
+:: ===================================================================
+
 :BUILD
 echo.
-echo %BLUE%Compilando projeto...%RESET%
+echo Compilando projeto...
 call mvn clean compile package
 if !errorlevel! equ 0 (
-    echo %GREEN%✓ Compilação concluída com sucesso!%RESET%
+    echo [OK] Compilacao concluida com sucesso!
 ) else (
-    echo %RED%✗ Erro na compilação!%RESET%
+    echo [ERRO] Erro na compilacao!
 )
-pause
+echo.
+echo Pressione qualquer tecla para continuar...
+pause > nul
 goto MAIN_MENU
 
 :SERVER
 echo.
-echo %BLUE%Verificando compilação...%RESET%
+echo Verificando compilacao...
 if not exist "%SERVER_JAR%" (
     if not exist "%MAIN_JAR%" (
-        echo %YELLOW%Projeto não compilado. Compilando agora...%RESET%
+        echo Projeto nao compilado. Compilando agora...
         call mvn clean compile package
         if !errorlevel! neq 0 (
-            echo %RED%✗ Erro na compilação!%RESET%
-            pause
+            echo [ERRO] Erro na compilacao!
+            echo.
+            echo Pressione qualquer tecla para continuar...
+            pause > nul
             goto MAIN_MENU
         )
     )
 )
 
-echo %BLUE%Iniciando servidor...%RESET%
-echo %YELLOW%Pressione Ctrl+C para parar o servidor%RESET%
+echo.
+echo Iniciando servidor...
+echo Pressione Ctrl+C para parar o servidor
 echo.
 
 if exist "%SERVER_JAR%" (
@@ -92,28 +93,33 @@ if exist "%SERVER_JAR%" (
 ) else if exist "%MAIN_JAR%" (
     java -cp "%MAIN_JAR%" com.distribuidos.server.ServerMain
 ) else (
-    echo %RED%✗ JAR do servidor não encontrado!%RESET%
-    echo %YELLOW%Execute a opção 1 para compilar o projeto primeiro.%RESET%
+    echo [ERRO] JAR do servidor nao encontrado!
+    echo Execute a opcao 1 para compilar o projeto primeiro.
 )
-pause
+echo.
+echo Pressione qualquer tecla para continuar...
+pause > nul
 goto MAIN_MENU
 
 :CLIENT
 echo.
-echo %BLUE%Verificando compilação...%RESET%
+echo Verificando compilacao...
 if not exist "%CLIENT_JAR%" (
     if not exist "%MAIN_JAR%" (
-        echo %YELLOW%Projeto não compilado. Compilando agora...%RESET%
+        echo Projeto nao compilado. Compilando agora...
         call mvn clean compile package
         if !errorlevel! neq 0 (
-            echo %RED%✗ Erro na compilação!%RESET%
-            pause
+            echo [ERRO] Erro na compilacao!
+            echo.
+            echo Pressione qualquer tecla para continuar...
+            pause > nul
             goto MAIN_MENU
         )
     )
 )
 
-echo %BLUE%Iniciando cliente...%RESET%
+echo.
+echo Iniciando cliente...
 echo.
 
 if exist "%CLIENT_JAR%" (
@@ -121,156 +127,167 @@ if exist "%CLIENT_JAR%" (
 ) else if exist "%MAIN_JAR%" (
     java -cp "%MAIN_JAR%" com.distribuidos.client.ClientMain
 ) else (
-    echo %RED%✗ JAR do cliente não encontrado!%RESET%
-    echo %YELLOW%Execute a opção 1 para compilar o projeto primeiro.%RESET%
+    echo [ERRO] JAR do cliente nao encontrado!
+    echo Execute a opcao 1 para compilar o projeto primeiro.
 )
-pause
+echo.
+echo Pressione qualquer tecla para continuar...
+pause > nul
 goto MAIN_MENU
 
 :TEST
 echo.
-echo %BLUE%Executando testes...%RESET%
+echo Executando testes...
 call mvn test
 if !errorlevel! equ 0 (
-    echo %GREEN%✓ Todos os testes passaram!%RESET%
+    echo [OK] Todos os testes passaram!
 ) else (
-    echo %RED%✗ Alguns testes falharam!%RESET%
+    echo [ERRO] Alguns testes falharam!
 )
-pause
+echo.
+echo Pressione qualquer tecla para continuar...
+pause > nul
 goto MAIN_MENU
 
 :CLEAN
 echo.
-echo %BLUE%Limpando projeto...%RESET%
+echo Limpando projeto...
 call mvn clean
-echo %BLUE%Recompilando...%RESET%
+echo Recompilando...
 call mvn compile package
 if !errorlevel! equ 0 (
-    echo %GREEN%✓ Limpeza e recompilação concluídas!%RESET%
+    echo [OK] Limpeza e recompilacao concluidas!
 ) else (
-    echo %RED%✗ Erro na recompilação!%RESET%
+    echo [ERRO] Erro na recompilacao!
 )
-pause
+echo.
+echo Pressione qualquer tecla para continuar...
+pause > nul
 goto MAIN_MENU
 
 :STOP
 echo.
-echo %BLUE%Parando todos os processos Java...%RESET%
+echo Parando todos os processos Java...
 taskkill /F /IM java.exe > nul 2>&1
 taskkill /F /IM javaw.exe > nul 2>&1
-echo %GREEN%✓ Processos Java finalizados!%RESET%
-pause
+echo [OK] Processos Java finalizados!
+echo.
+echo Pressione qualquer tecla para continuar...
+pause > nul
 goto MAIN_MENU
 
 :STATUS
 echo.
-echo %BLUE%Status do sistema:%RESET%
+echo Status do sistema:
 echo.
 
 :: Verificar JARs
-echo %YELLOW%Arquivos compilados:%RESET%
+echo Arquivos compilados:
 if exist "%SERVER_JAR%" (
-    echo %GREEN%  ✓ Servidor JAR%RESET% - %SERVER_JAR%
+    echo   [OK] Servidor JAR - %SERVER_JAR%
 ) else (
-    echo %RED%  ✗ Servidor JAR%RESET% - %SERVER_JAR%
+    echo   [X] Servidor JAR - %SERVER_JAR%
 )
 
 if exist "%CLIENT_JAR%" (
-    echo %GREEN%  ✓ Cliente JAR%RESET% - %CLIENT_JAR%
+    echo   [OK] Cliente JAR - %CLIENT_JAR%
 ) else (
-    echo %RED%  ✗ Cliente JAR%RESET% - %CLIENT_JAR%
+    echo   [X] Cliente JAR - %CLIENT_JAR%
 )
 
 if exist "%MAIN_JAR%" (
-    echo %GREEN%  ✓ JAR principal%RESET% - %MAIN_JAR%
+    echo   [OK] JAR principal - %MAIN_JAR%
 ) else (
-    echo %RED%  ✗ JAR principal%RESET% - %MAIN_JAR%
+    echo   [X] JAR principal - %MAIN_JAR%
 )
 
 :: Verificar banco de dados
 echo.
-echo %YELLOW%Banco de dados:%RESET%
+echo Banco de dados:
 if exist "usuarios.db" (
-    echo %GREEN%  ✓ usuarios.db%RESET% - Banco principal
+    echo   [OK] usuarios.db - Banco principal
 ) else (
-    echo %RED%  ✗ usuarios.db%RESET% - Banco principal
+    echo   [X] usuarios.db - Banco principal
 )
 
 if exist "newpix.db" (
-    echo %GREEN%  ✓ newpix.db%RESET% - Banco alternativo
+    echo   [OK] newpix.db - Banco alternativo
 ) else (
-    echo %RED%  ✗ newpix.db%RESET% - Banco alternativo
+    echo   [X] newpix.db - Banco alternativo
 )
 
 :: Verificar logs
 echo.
-echo %YELLOW%Logs:%RESET%
+echo Logs:
 if exist "logs\sistema-distribuido.log" (
-    echo %GREEN%  ✓ logs\sistema-distribuido.log%RESET%
+    echo   [OK] logs\sistema-distribuido.log
 ) else (
-    echo %YELLOW%  ! Nenhum log encontrado%RESET%
+    echo   [!] Nenhum log encontrado
 )
 
 :: Verificar processos Java em execução
 echo.
-echo %YELLOW%Processos Java em execução:%RESET%
+echo Processos Java em execucao:
 tasklist /FI "IMAGENAME eq java.exe" /FO CSV 2>nul | find /I "java.exe" > nul
 if !errorlevel! equ 0 (
-    echo %GREEN%  ✓ Processos Java detectados%RESET%
+    echo   [OK] Processos Java detectados
     tasklist /FI "IMAGENAME eq java.exe" /FO TABLE 2>nul | findstr /V "INFO:"
 ) else (
-    echo %YELLOW%  ! Nenhum processo Java em execução%RESET%
+    echo   [!] Nenhum processo Java em execucao
 )
 
-pause
+echo.
+echo Pressione qualquer tecla para continuar...
+pause > nul
 goto MAIN_MENU
 
 :HELP
 cls
 echo.
-echo %BLUE%=========================================%RESET%
-echo %BLUE%              AJUDA%RESET%
-echo %BLUE%=========================================%RESET%
+echo =========================================
+echo              AJUDA
+echo =========================================
 echo.
-echo %GREEN%Como usar o sistema:%RESET%
+echo Como usar o sistema:
 echo.
-echo %YELLOW%1. Primeira execução:%RESET%
-echo    - Execute a opção 1 (Compilar projeto)
-echo    - Aguarde a compilação terminar
+echo 1. Primeira execucao:
+echo    - Execute a opcao 1 (Compilar projeto)
+echo    - Aguarde a compilacao terminar
 echo.
-echo %YELLOW%2. Iniciar o sistema:%RESET%
-echo    - Execute a opção 2 (Iniciar servidor)
-echo    - Em outro terminal, execute a opção 3 (Iniciar cliente)
+echo 2. Iniciar o sistema:
+echo    - Execute a opcao 2 (Iniciar servidor)
+echo    - Em outro terminal, execute a opcao 3 (Iniciar cliente)
 echo.
-echo %YELLOW%3. Testar conexão:%RESET%
+echo 3. Testar conexao:
 echo    - No cliente, use:
 echo      Servidor: localhost:8080
 echo      CPF: 123.456.789-01
 echo      Senha: 123456
 echo.
-echo %YELLOW%4. Solução de problemas:%RESET%
-echo    - Se houver erro de compilação: use opção 5
-echo    - Se o sistema travar: use opção 6
-echo    - Para verificar status: use opção 7
+echo 4. Solucao de problemas:
+echo    - Se houver erro de compilacao: use opcao 5
+echo    - Se o sistema travar: use opcao 6
+echo    - Para verificar status: use opcao 7
 echo.
-echo %GREEN%Estrutura do projeto:%RESET%
-echo    - src/main/java/    : Código fonte
+echo Estrutura do projeto:
+echo    - src/main/java/    : Codigo fonte
 echo    - target/           : Arquivos compilados
 echo    - logs/             : Logs do sistema
 echo    - usuarios.db       : Banco de dados SQLite
-echo    - docs/             : Documentação
+echo    - docs/             : Documentacao
 echo    - scripts/          : Scripts auxiliares
 echo.
-echo %GREEN%Documentação completa:%RESET%
-echo    - README.md         : Visão geral
-echo    - docs/protocol.md  : Protocolo de comunicação
+echo Documentacao completa:
+echo    - README.md         : Visao geral
+echo    - docs/protocol.md  : Protocolo de comunicacao
 echo    - docs/development.md : Guia de desenvolvimento
 echo.
-pause
+echo Pressione qualquer tecla para continuar...
+pause > nul
 goto MAIN_MENU
 
 :END
 echo.
-echo %GREEN%Obrigado por usar o %PROJECT_NAME%!%RESET%
+echo Obrigado por usar o %PROJECT_NAME%!
 echo.
 exit /b 0

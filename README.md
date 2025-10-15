@@ -11,14 +11,13 @@ Um sistema bancário distribuído em Java para comunicação cliente-servidor co
 ### Executar o Sistema
 
 ```bash
-# 1. Compilar (primeira vez)
-.\scripts\build.bat
+# Método 1: Script principal com menu interativo
+.\sistema.bat
 
-# 2. Iniciar servidor
-.\scripts\server.bat
-
-# 3. Iniciar cliente (novo terminal)
-.\scripts\client.bat
+# Método 2: Scripts individuais
+.\scripts\build.bat     # Compilar
+.\scripts\server.bat    # Servidor
+.\scripts\client.bat    # Cliente
 ```
 
 ### Conexão de Teste
@@ -56,10 +55,10 @@ validador-sistemas-distribuidos/
 
 | Script | Descrição |
 |--------|-----------|
-| `scripts\server.bat` | Inicia o servidor na porta 8080 |
-| `scripts\client.bat` | Inicia o cliente GUI |
-| `scripts\build.bat` | Compila o projeto |
-| `scripts\clean.bat` | Limpa e recompila tudo |
+| `sistema.bat` | Script principal com menu interativo |
+| `scripts\build.bat` | Compilar projeto |
+| `scripts\server.bat` | Iniciar servidor |
+| `scripts\client.bat` | Iniciar cliente |
 
 ## 🌐 Protocolo de Comunicação
 
