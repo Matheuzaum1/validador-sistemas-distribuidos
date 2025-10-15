@@ -8,8 +8,6 @@ setlocal enabledelayedexpansion
 
 set "PROJECT_NAME=Sistema Validador - Distribuido"
 set "VERSION=1.0.0"
-set "SERVER_JAR=target\validador-sistemas-distribuidos-1.0.0-server.jar"
-set "CLIENT_JAR=target\validador-sistemas-distribuidos-1.0.0-client.jar"
 set "MAIN_JAR=target\validador-sistemas-distribuidos-1.0.0.jar"
 
 :MAIN_MENU
@@ -69,17 +67,15 @@ goto MAIN_MENU
 :SERVER
 echo.
 echo Verificando compilacao...
-if not exist "%SERVER_JAR%" (
-    if not exist "%MAIN_JAR%" (
-        echo Projeto nao compilado. Compilando agora...
-        call mvn clean compile package
-        if !errorlevel! neq 0 (
-            echo [ERRO] Erro na compilacao!
-            echo.
-            echo Pressione qualquer tecla para continuar...
-            pause > nul
-            goto MAIN_MENU
-        )
+if not exist "%MAIN_JAR%" (
+    echo Projeto nao compilado. Compilando agora...
+    call mvn clean compile package
+    if !errorlevel! neq 0 (
+        echo [ERRO] Erro na compilacao!
+        echo.
+        echo Pressione qualquer tecla para continuar...
+        pause > nul
+        goto MAIN_MENU
     )
 )
 
@@ -88,14 +84,7 @@ echo Iniciando servidor...
 echo Pressione Ctrl+C para parar o servidor
 echo.
 
-if exist "%SERVER_JAR%" (
-    java -jar "%SERVER_JAR%"
-) else if exist "%MAIN_JAR%" (
-    java -cp "%MAIN_JAR%" com.distribuidos.server.ServerMain
-) else (
-    echo [ERRO] JAR do servidor nao encontrado!
-    echo Execute a opcao 1 para compilar o projeto primeiro.
-)
+java -cp "%MAIN_JAR%" com.distribuidos.server.ServerMain
 echo.
 echo Pressione qualquer tecla para continuar...
 pause > nul
@@ -104,17 +93,15 @@ goto MAIN_MENU
 :CLIENT
 echo.
 echo Verificando compilacao...
-if not exist "%CLIENT_JAR%" (
-    if not exist "%MAIN_JAR%" (
-        echo Projeto nao compilado. Compilando agora...
-        call mvn clean compile package
-        if !errorlevel! neq 0 (
-            echo [ERRO] Erro na compilacao!
-            echo.
-            echo Pressione qualquer tecla para continuar...
-            pause > nul
-            goto MAIN_MENU
-        )
+if not exist "%MAIN_JAR%" (
+    echo Projeto nao compilado. Compilando agora...
+    call mvn clean compile package
+    if !errorlevel! neq 0 (
+        echo [ERRO] Erro na compilacao!
+        echo.
+        echo Pressione qualquer tecla para continuar...
+        pause > nul
+        goto MAIN_MENU
     )
 )
 
@@ -122,14 +109,7 @@ echo.
 echo Iniciando cliente...
 echo.
 
-if exist "%CLIENT_JAR%" (
-    java -jar "%CLIENT_JAR%"
-) else if exist "%MAIN_JAR%" (
-    java -cp "%MAIN_JAR%" com.distribuidos.client.ClientMain
-) else (
-    echo [ERRO] JAR do cliente nao encontrado!
-    echo Execute a opcao 1 para compilar o projeto primeiro.
-)
+java -cp "%MAIN_JAR%" com.distribuidos.client.ClientMain
 echo.
 echo Pressione qualquer tecla para continuar...
 pause > nul
@@ -183,18 +163,6 @@ echo.
 
 :: Verificar JARs
 echo Arquivos compilados:
-if exist "%SERVER_JAR%" (
-    echo   [OK] Servidor JAR - %SERVER_JAR%
-) else (
-    echo   [X] Servidor JAR - %SERVER_JAR%
-)
-
-if exist "%CLIENT_JAR%" (
-    echo   [OK] Cliente JAR - %CLIENT_JAR%
-) else (
-    echo   [X] Cliente JAR - %CLIENT_JAR%
-)
-
 if exist "%MAIN_JAR%" (
     echo   [OK] JAR principal - %MAIN_JAR%
 ) else (

@@ -77,13 +77,12 @@
                 <version>3.5.1</version>
                 <executions>
                     <execution>
-                        <id>shade-server</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <finalName>validador-sistemas-distribuidos-1.0.0-server</finalName>
+                            <finalName>validador-sistemas-distribuidos-1.0.0</finalName>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>com.distribuidos.server.ServerMain</mainClass>
