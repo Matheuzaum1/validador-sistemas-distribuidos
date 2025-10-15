@@ -240,18 +240,44 @@ public class ClientGUI extends JFrame {
             String host = serverHostField.getText().trim();
             int port = Integer.parseInt(serverPortField.getText().trim());
             
-            if (connection.connect(host, port)) {
-                connectionStatusLabel.setText("Status: Conectado a " + host + ":" + port);
-                connectionStatusLabel.setForeground(new Color(0, 128, 0)); // darker green for better contrast
-                updateUI();
-            } else {
-                JOptionPane.showMessageDialog(this, "Falha ao conectar ao servidor", 
-                    "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
-            }
+            // Feedback visual durante conexão
+            connectionStatusLabel.setText("Status: Conectando...");
+            connectionStatusLabel.setForeground(Color.ORANGE);
+            connectButton.setEnabled(false);
+            addLogMessage("Tentando conectar a " + host + ":" + port + "...");
+            
+            // Executar conexão em thread separada para não travar a UI
+            new Thread(() -> {
+                boolean connected = connection.connect(host, port);
+                
+                // Atualizar UI na thread principal
+                SwingUtilities.invokeLater(() -> {
+                    connectButton.setEnabled(true);
+                    
+                    if (connected) {
+                        connectionStatusLabel.setText("Status: Conectado a " + host + ":" + port);
+                        connectionStatusLabel.setForeground(new Color(0, 128, 0)); // darker green
+                        updateUI();
+                    } else {
+                        connectionStatusLabel.setText("Status: Falha na conexão");
+                        connectionStatusLabel.setForeground(Color.RED);
+                        JOptionPane.showMessageDialog(this, 
+                            "Falha ao conectar ao servidor.\nVerifique o endereço e se o servidor está rodando.", 
+                            "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
+                    }
+                });
+            }).start();
+            
         } catch (NumberFormatException e) {
+            connectButton.setEnabled(true);
+            connectionStatusLabel.setText("Status: Desconectado");
+            connectionStatusLabel.setForeground(Color.RED);
             JOptionPane.showMessageDialog(this, "Porta deve ser um número válido", 
                 "Erro", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
+            connectButton.setEnabled(true);
+            connectionStatusLabel.setText("Status: Erro");
+            connectionStatusLabel.setForeground(Color.RED);
             JOptionPane.showMessageDialog(this, "Erro ao conectar: " + e.getMessage(), 
                 "Erro", JOptionPane.ERROR_MESSAGE);
         }

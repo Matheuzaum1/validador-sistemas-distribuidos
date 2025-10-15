@@ -24,7 +24,11 @@ public class ClientConnection {
     
     public boolean connect(String serverHost, int serverPort) {
         try {
-            socket = new Socket(serverHost, serverPort);
+            // Criar socket com timeout de conexão
+            socket = new Socket();
+            socket.connect(new InetSocketAddress(serverHost, serverPort), 5000); // 5 segundos timeout
+            socket.setSoTimeout(10000); // 10 segundos timeout para operações de leitura
+            
             in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
             connected = true;
@@ -54,7 +58,17 @@ public class ClientConnection {
             
         } catch (IOException e) {
             logger.error("Erro ao conectar ao servidor", e);
-            clientGUI.addLogMessage("Erro ao conectar: " + e.getMessage());
+            String errorMsg = "Erro ao conectar: ";
+            if (e instanceof ConnectException) {
+                errorMsg += "Servidor não encontrado ou recusou a conexão";
+            } else if (e instanceof SocketTimeoutException) {
+                errorMsg += "Timeout - servidor não respondeu em 5 segundos";
+            } else if (e instanceof UnknownHostException) {
+                errorMsg += "Host não encontrado - verifique o IP/nome do servidor";
+            } else {
+                errorMsg += e.getMessage();
+            }
+            clientGUI.addLogMessage(errorMsg);
             return false;
         }
     }

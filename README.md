@@ -1,100 +1,118 @@
-# Sistema Distribuído - Validador de Usuários
+# Sistema Validador - Distribuído
 
-Este é um sistema distribuído completo desenvolvido em Java com Maven, implementando um servidor e cliente com interface gráfica para gerenciamento de usuários.
+Um sistema bancário distribuído em Java para comunicação cliente-servidor com protocolo JSON personalizado.
 
-## Funcionalidades Implementadas
-
-### Servidor
-- ✅ **Interface Gráfica (GUI)** com abas organizadas
-- ✅ **Log em tempo real** de todos os eventos
-- ✅ **Seleção de porta** para o servidor
-- ✅ **Informações do servidor**: IP real, hostname (DNS)
-- ✅ **Visualização de clientes conectados** com detalhes (IP, porta, hostname, usuário logado)
-- ✅ **CRUD completo do banco de dados** com interface visual
-- ✅ **Tratamento avançado de erros** com validação usando classes Essentials
-
-### Cliente
-- ✅ **Interface Gráfica (GUI)** intuitiva
-- ✅ **Campos de preenchimento**: nome, CPF, senha
-- ✅ **Operações completas**:
-  - Login/Logout
-  - Criar usuário
-  - Ler dados do usuário
-  - Alterar dados do usuário
-  - Deletar conta
-- ✅ **Log em tempo real** de comunicação
-- ✅ **Tabela de clientes conectados** (simulada)
-- ✅ **Validação de dados** seguindo padrões das classes Essentials
-
-### Características Técnicas
-- ✅ **Arquitetura cliente-servidor** com sockets TCP
-- ✅ **Protocolo JSON** validado pelas classes Essentials
-- ✅ **Banco de dados SQLite** com dados populados
-- ✅ **Autenticação por tokens** com expiração
-- ✅ **Criptografia de senhas** com BCrypt
-- ✅ **Logging estruturado** com SLF4J/Logback
-- ✅ **Tratamento robusto de erros** e exceções
-- ✅ **Interface responsiva** com Swing
-
-## Estrutura do Projeto
-
-```
-├── Essentials/                 # Pasta preservada com validadores
-│   ├── README.md
-│   ├── RulesEnum.java
-│   └── Validator.java
-├── src/main/java/com/distribuidos/
-│   ├── client/                 # Classes do cliente
-│   │   ├── ClientConnection.java
-│   │   ├── ClientGUI.java
-│   │   └── ClientMain.java
-│   ├── server/                 # Classes do servidor
-│   │   ├── ServerHandler.java
-│   │   ├── ServerGUI.java
-│   │   └── ServerMain.java
-│   ├── common/                 # Classes compartilhadas
-│   │   ├── Usuario.java
-│   │   ├── ClientInfo.java
-│   │   ├── MessageBuilder.java
-│   │   └── TokenManager.java
-│   └── database/               # Gerenciamento do banco
-│       └── DatabaseManager.java
-├── src/main/resources/
-│   └── logback.xml            # Configuração de logging
-├── logs/                      # Diretório de logs
-├── usuarios.db               # Banco SQLite (criado automaticamente)
-└── pom.xml                   # Configuração Maven
-```
-
-## Como Executar
+## 🚀 Início Rápido
 
 ### Pré-requisitos
-- Java 11 ou superior
-- Maven 3.6 ou superior
+- Java 11+ (testado com Java 25)
+- Maven 3.6+
 
-### Compilação
+### Executar o Sistema
+
 ```bash
-mvn clean compile
+# 1. Compilar (primeira vez)
+.\scripts\build.bat
+
+# 2. Iniciar servidor
+.\scripts\server.bat
+
+# 3. Iniciar cliente (novo terminal)
+.\scripts\client.bat
 ```
 
-### Executar Servidor
-```bash
-mvn exec:java -Dexec.mainClass="com.distribuidos.server.ServerMain"
+### Conexão de Teste
+- **Servidor local**: `localhost:8080`
+- **CPF teste**: `123.456.789-01`
+- **Senha teste**: `123456`
+
+## 📁 Estrutura do Projeto
+
+```
+validador-sistemas-distribuidos/
+├── src/                          # Código fonte
+│   ├── main/java/com/distribuidos/
+│   │   ├── client/              # Cliente GUI
+│   │   ├── server/              # Servidor
+│   │   ├── common/              # Classes compartilhadas
+│   │   └── database/            # Gerenciamento SQLite
+│   └── test/                    # Testes unitários
+├── scripts/                     # Scripts de execução
+│   ├── server.bat              # Iniciar servidor
+│   ├── client.bat              # Iniciar cliente
+│   ├── build.bat               # Compilar projeto
+│   └── clean.bat               # Limpar e recompilar
+├── docs/                        # Documentação
+│   ├── protocol.md             # Protocolo de comunicação
+│   └── development.md          # Guia de desenvolvimento
+├── Essentials/                  # Validador de protocolo
+│   ├── Validator.java
+│   ├── RulesEnum.java
+│   └── README.md               # Protocolo bancário
+└── target/                      # Arquivos compilados
 ```
 
-### Executar Cliente
-```bash
-mvn exec:java -Dexec.mainClass="com.distribuidos.client.ClientMain"
+## 🔧 Scripts Disponíveis
+
+| Script | Descrição |
+|--------|-----------|
+| `scripts\server.bat` | Inicia o servidor na porta 8080 |
+| `scripts\client.bat` | Inicia o cliente GUI |
+| `scripts\build.bat` | Compila o projeto |
+| `scripts\clean.bat` | Limpa e recompila tudo |
+
+## 🌐 Protocolo de Comunicação
+
+O sistema usa um protocolo JSON personalizado. Consulte [docs/protocol.md](docs/protocol.md) para detalhes completos.
+
+### Exemplo de Login
+```json
+// Cliente → Servidor
+{
+  "operacao": "usuario_login",
+  "cpf": "123.456.789-01",
+  "senha": "123456"
+}
+
+// Servidor → Cliente
+{
+  "operacao": "usuario_login",
+  "token": "abc123...",
+  "status": true,
+  "info": "Login bem-sucedido."
+}
 ```
 
-### Executar com Maven (alternativo)
+## 🏗️ Desenvolvimento
+
+### Compilar Manualmente
 ```bash
-# Servidor
-mvn exec:java@run-server
+mvn clean compile package
+```
 
-## Usuários Pré-cadastrados
+### Executar Testes
+```bash
+mvn test
+```
 
-O sistema vem com 20 usuários de teste já cadastrados para facilitar os testes:
+### Gerar JAR Executável
+```bash
+mvn package
+# Gera: target/validador-sistemas-distribuidos-1.0.0-server.jar
+```
+
+## 🎯 Funcionalidades
+
+- ✅ **Autenticação**: Login/logout com tokens
+- ✅ **CRUD Usuários**: Criar, ler, atualizar, deletar
+- ✅ **Transações**: Transferências entre usuários
+- ✅ **Depósitos**: Adicionar saldo à conta
+- ✅ **Histórico**: Consulta de transações por período
+- ✅ **Banco SQLite**: Persistência de dados
+- ✅ **Interface Gráfica**: Cliente Java Swing
+- ✅ **Protocolo Validado**: Conformidade garantida
+
+## 👥 Usuários de Teste
 
 | CPF | Nome | Senha |
 |-----|------|-------|
@@ -108,96 +126,53 @@ O sistema vem com 20 usuários de teste já cadastrados para facilitar os testes
 | 666.777.888-99 | Juliana Pereira Rocha | juliana321 |
 | 777.888.999-00 | Marcos Antonio Dias | marcos654 |
 | 888.999.000-11 | Luciana Martins Cruz | luciana987 |
-| 999.000.111-22 | Rafael Santos Barbosa | rafael147 |
-| 000.111.222-33 | Camila Rodrigues Silva | camila258 |
-| 147.258.369-12 | Bruno Henrique Gomes | bruno369 |
-| 258.369.147-23 | Patrícia Lima Nascimento | patricia741 |
-| 369.147.258-34 | Diego Fernandes Costa | diego852 |
-| 741.852.963-45 | Vanessa Almeida Santos | vanessa963 |
-| 852.963.741-56 | Thiago Oliveira Pereira | thiago159 |
-| 963.741.852-67 | Priscila Santos Moreira | priscila753 |
-| 159.753.486-78 | Leonardo Silva Cardoso | leonardo486 |
-| 753.486.159-89 | Gabriela Costa Ribeiro | gabriela159 |
+
+## 🔒 Segurança
+
+- Senhas hasheadas com BCrypt
+- Tokens de sessão únicos
+- Validação de protocolo em todas as mensagens
+- Timeouts de conexão configurados
+
+## 📊 Tecnologias
+
+- **Java 11+**: Linguagem principal
+- **Maven**: Gerenciamento de dependências
+- **SQLite**: Banco de dados
+- **Jackson**: Processamento JSON
+- **Logback**: Sistema de logs
+- **JUnit**: Testes unitários
+- **Java Swing**: Interface gráfica
+
+## 🐛 Solução de Problemas
+
+### Erro de Compilação
+```bash
+.\scripts\clean.bat  # Limpa e recompila
 ```
 
-## Usuários Pré-cadastrados
+### Timeout de Conexão
+- Verifique se o servidor está rodando
+- Confirme IP e porta (padrão: localhost:8080)
+- Timeout configurado para 5 segundos
 
-O sistema vem com usuários de teste já cadastrados:
-
-| CPF | Nome | Senha |
-|-----|------|-------|
-| 123.456.789-01 | João Silva | 123456 |
-| 987.654.321-02 | Maria Santos | 654321 |
-| 111.222.333-44 | Pedro Oliveira | password |
-| 555.666.777-88 | Ana Costa | 123abc |
-
-## Protocolo de Comunicação
-
-O sistema utiliza mensagens JSON validadas pelas classes Essentials:
-
-### Exemplo de Login
-**Cliente → Servidor:**
-```json
-{
-  "operacao": "usuario_login",
-  "cpf": "123.456.789-01",
-  "senha": "123456"
-}
+### Arquivo JAR em Uso
+```bash
+.\scripts\stop.bat   # Para todos os processos Java
 ```
 
-**Servidor → Cliente:**
-```json
-{
-  "operacao": "usuario_login",
-  "status": true,
-  "info": "Login realizado com sucesso",
-  "token": "eyJhbGciOiJIUzI1NiJ9..."
-}
-```
+## 👥 Contribuição
 
-## Validações Implementadas
+1. Clone o repositório
+2. Crie sua branch: `git checkout -b feature/nova-funcionalidade`
+3. Commit: `git commit -m 'Adiciona nova funcionalidade'`
+4. Push: `git push origin feature/nova-funcionalidade`
+5. Abra um Pull Request
 
-- **CPF**: Formato 000.000.000-00
-- **Nome**: Mínimo 6 caracteres, máximo 120
-- **Senha**: Mínimo 6 caracteres, máximo 120
-- **Tokens**: Validação de expiração (30 minutos)
-- **Mensagens JSON**: Validação completa usando classes Essentials
+## 📄 Licença
 
-## Tratamento de Erros
+Este projeto é licenciado sob a MIT License.
 
-O sistema implementa tratamento robusto de erros:
+---
 
-- **Validação de entrada** em todos os campos
-- **Verificação de conectividade** antes das operações
-- **Timeout de tokens** com limpeza automática
-- **Mensagens de erro descritivas** para o usuário
-- **Logging detalhado** para debugging
-- **Recuperação graceful** de falhas de conexão
-
-## Segurança
-
-- **Senhas criptografadas** com BCrypt
-- **Tokens seguros** com expiração automática
-- **Validação rigorosa** de todas as entradas
-- **Prevenção de SQL injection** com PreparedStatements
-- **Logs de auditoria** de todas as operações
-
-## Logs
-
-Os logs são salvos em:
-- **Console**: Para desenvolvimento
-- **Arquivo**: `logs/sistema-distribuido.log` com rotação diária
-
-## Banco de Dados
-
-- **SQLite** para simplicidade e portabilidade
-- **Arquivo**: `usuarios.db` (criado automaticamente)
-- **Tabela usuarios** com campos: cpf, nome, senha, saldo, criado_em, atualizado_em
-
-## Compatibilidade
-
-Este sistema foi desenvolvido para ser compatível com outros projetos de sistemas distribuídos, seguindo rigorosamente as especificações das classes Essentials para garantir interoperabilidade.
-
-## Branch
-
-Este projeto está na branch `newpix-teste` conforme solicitado.
+**Criado para a disciplina de Sistemas Distribuídos**
