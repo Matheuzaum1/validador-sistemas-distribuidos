@@ -604,9 +604,8 @@ git push origin feature/nova-funcionalidade
 Este projeto é desenvolvido para fins educacionais na disciplina de **Sistemas Distribuídos**.
 
 ### Informações do Projeto
-- **Instituição**: [Nome da Universidade]
+- **Instituição**: UTFPR-PG
 - **Disciplina**: Sistemas Distribuídos
-- **Professor**: [Nome do Professor]
 - **Semestre**: 2025.1
 - **Fase Atual**: EP-1 (Operações CRUD de usuários)
 
