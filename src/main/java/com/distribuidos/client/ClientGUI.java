@@ -240,30 +240,77 @@ public class ClientGUI extends JFrame {
             String host = serverHostField.getText().trim();
             int port = Integer.parseInt(serverPortField.getText().trim());
             
+            // Validação básica
+            if (host.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Endereço do servidor não pode estar vazio", 
+                    "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
             // Feedback visual durante conexão
             connectionStatusLabel.setText("Status: Conectando...");
             connectionStatusLabel.setForeground(Color.ORANGE);
             connectButton.setEnabled(false);
-            addLogMessage("Tentando conectar a " + host + ":" + port + "...");
+            addLogMessage("=== INICIANDO PROCESSO DE CONEXÃO ===");
+            addLogMessage("Servidor destino: " + host + ":" + port);
             
             // Executar conexão em thread separada para não travar a UI
             new Thread(() -> {
-                boolean connected = connection.connect(host, port);
+                final boolean[] connectionResult = {false};
+                
+                try {
+                    // Primeiro, testar conectividade básica
+                    SwingUtilities.invokeLater(() -> {
+                        connectionStatusLabel.setText("Status: Testando conectividade...");
+                    });
+                    
+                    if (connection.testConnectivity(host, port)) {
+                        // Se o teste passou, tentar conexão completa
+                        SwingUtilities.invokeLater(() -> {
+                            connectionStatusLabel.setText("Status: Estabelecendo conexão...");
+                        });
+                        connectionResult[0] = connection.connect(host, port);
+                    } else {
+                        SwingUtilities.invokeLater(() -> {
+                            addLogMessage("⚠ Teste de conectividade falhou - tentando conexão mesmo assim...");
+                        });
+                        // Mesmo que o teste falhe, tenta conectar (alguns firewalls bloqueiam ping)
+                        connectionResult[0] = connection.connect(host, port);
+                    }
+                } catch (Exception e) {
+                    SwingUtilities.invokeLater(() -> {
+                        addLogMessage("✗ Erro durante processo de conexão: " + e.getMessage());
+                    });
+                }
                 
                 // Atualizar UI na thread principal
                 SwingUtilities.invokeLater(() -> {
                     connectButton.setEnabled(true);
                     
-                    if (connected) {
+                    if (connectionResult[0]) {
                         connectionStatusLabel.setText("Status: Conectado a " + host + ":" + port);
                         connectionStatusLabel.setForeground(new Color(0, 128, 0)); // darker green
                         updateUI();
+                        addLogMessage("🎉 Conexão estabelecida com sucesso!");
                     } else {
                         connectionStatusLabel.setText("Status: Falha na conexão");
                         connectionStatusLabel.setForeground(Color.RED);
-                        JOptionPane.showMessageDialog(this, 
-                            "Falha ao conectar ao servidor.\nVerifique o endereço e se o servidor está rodando.", 
-                            "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
+                        addLogMessage("💥 Falha na conexão!");
+                        
+                        String diagnosticMessage = "Falha ao conectar ao servidor " + host + ":" + port + 
+                            "\n\nVerificações realizadas:" +
+                            "\n• Teste de conectividade" +
+                            "\n• Tentativa de estabelecimento de socket TCP" +
+                            "\n• Envio de mensagem de protocolo 'conectar'" +
+                            "\n\nPossíveis causas:" +
+                            "\n• Servidor não está rodando" +
+                            "\n• Porta incorreta ou bloqueada" +
+                            "\n• Problemas de rede/firewall" +
+                            "\n• Servidor rejeitou a conexão" +
+                            "\n\nConsulte o log detalhado para mais informações.";
+                            
+                        JOptionPane.showMessageDialog(this, diagnosticMessage, 
+                            "Diagnóstico de Conexão", JOptionPane.ERROR_MESSAGE);
                     }
                 });
             }).start();
@@ -272,8 +319,8 @@ public class ClientGUI extends JFrame {
             connectButton.setEnabled(true);
             connectionStatusLabel.setText("Status: Desconectado");
             connectionStatusLabel.setForeground(Color.RED);
-            JOptionPane.showMessageDialog(this, "Porta deve ser um número válido", 
-                "Erro", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Porta deve ser um número válido (ex: 8080)", 
+                "Erro de Validação", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
             connectButton.setEnabled(true);
             connectionStatusLabel.setText("Status: Erro");

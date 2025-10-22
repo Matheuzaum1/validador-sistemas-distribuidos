@@ -22,8 +22,60 @@ public class ClientConnection {
         this.clientGUI = clientGUI;
     }
     
+    /**
+     * Testa a conectividade básica com o servidor antes de tentar conectar
+     */
+    public boolean testConnectivity(String serverHost, int serverPort) {
+        try {
+            clientGUI.addLogMessage("=== TESTE DE CONECTIVIDADE ===");
+            clientGUI.addLogMessage("Testando alcançabilidade de " + serverHost + "...");
+            
+            // Teste de alcançabilidade do host
+            InetAddress address = InetAddress.getByName(serverHost);
+            clientGUI.addLogMessage("✓ Host resolvido: " + address.getHostAddress());
+            
+            // Teste de ping (se possível)
+            boolean reachable = address.isReachable(3000);
+            if (reachable) {
+                clientGUI.addLogMessage("✓ Host alcançável (ping respondeu)");
+            } else {
+                clientGUI.addLogMessage("⚠ Host pode não responder ping (normal em alguns casos)");
+            }
+            
+            // Teste de conectividade da porta
+            clientGUI.addLogMessage("Testando porta " + serverPort + "...");
+            try (Socket testSocket = new Socket()) {
+                testSocket.connect(new InetSocketAddress(serverHost, serverPort), 2000);
+                clientGUI.addLogMessage("✓ Porta " + serverPort + " está aberta e acessível");
+                clientGUI.addLogMessage("=== TESTE CONCLUÍDO: SUCESSO ===");
+                return true;
+            } catch (IOException e) {
+                clientGUI.addLogMessage("✗ Porta " + serverPort + " não está acessível");
+                clientGUI.addLogMessage("Erro: " + e.getMessage());
+                clientGUI.addLogMessage("=== TESTE CONCLUÍDO: FALHA ===");
+                return false;
+            }
+            
+        } catch (UnknownHostException e) {
+            clientGUI.addLogMessage("✗ Erro ao resolver hostname: " + e.getMessage());
+            clientGUI.addLogMessage("=== TESTE CONCLUÍDO: FALHA ===");
+            return false;
+        } catch (IOException e) {
+            clientGUI.addLogMessage("✗ Erro de rede: " + e.getMessage());
+            clientGUI.addLogMessage("=== TESTE CONCLUÍDO: FALHA ===");
+            return false;
+        }
+    }
+    
     public boolean connect(String serverHost, int serverPort) {
         try {
+            logger.info("Iniciando conexão com servidor {}:{}", serverHost, serverPort);
+            clientGUI.addLogMessage("=== INICIANDO CONEXÃO ===");
+            clientGUI.addLogMessage("Servidor: " + serverHost);
+            clientGUI.addLogMessage("Porta: " + serverPort);
+            clientGUI.addLogMessage("Timeout de conexão: 5 segundos");
+            clientGUI.addLogMessage("Timeout de leitura: 10 segundos");
+            
             // Criar socket com timeout de conexão
             socket = new Socket();
             socket.connect(new InetSocketAddress(serverHost, serverPort), 5000); // 5 segundos timeout
@@ -33,59 +85,131 @@ public class ClientConnection {
             out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
             connected = true;
             
-            clientGUI.addLogMessage("Conectado ao servidor: " + serverHost + ":" + serverPort);
-            logger.info("Conectado ao servidor: {}:{}", serverHost, serverPort);
+            // Log informações da conexão estabelecida
+            String localInfo = socket.getLocalAddress().getHostAddress() + ":" + socket.getLocalPort();
+            String remoteInfo = socket.getRemoteSocketAddress().toString();
+            
+            clientGUI.addLogMessage("✓ Socket TCP conectado com sucesso!");
+            clientGUI.addLogMessage("Local: " + localInfo);
+            clientGUI.addLogMessage("Remoto: " + remoteInfo);
+            logger.info("Conectado ao servidor: {}:{} (local: {})", serverHost, serverPort, localInfo);
             
             // Enviar mensagem de conexão conforme protocolo
             try {
+                clientGUI.addLogMessage("Enviando mensagem de protocolo 'conectar'...");
                 String response = connectToServer();
                 if (MessageBuilder.extractStatus(response)) {
-                    clientGUI.addLogMessage("Protocolo de conexão concluído com sucesso");
+                    clientGUI.addLogMessage("✓ Protocolo de conexão concluído com sucesso");
+                    clientGUI.addLogMessage("=== CONEXÃO ESTABELECIDA ===");
                     logger.info("Protocolo de conexão concluído com sucesso");
                     return true;
                 } else {
-                    clientGUI.addLogMessage("Falha no protocolo de conexão: " + MessageBuilder.extractInfo(response));
-                    logger.error("Falha no protocolo de conexão: {}", MessageBuilder.extractInfo(response));
+                    String errorInfo = MessageBuilder.extractInfo(response);
+                    clientGUI.addLogMessage("✗ Falha no protocolo de conexão: " + errorInfo);
+                    clientGUI.addLogMessage("=== CONEXÃO REJEITADA ===");
+                    logger.error("Falha no protocolo de conexão: {}", errorInfo);
                     disconnect();
                     return false;
                 }
             } catch (Exception e) {
                 logger.error("Erro no protocolo de conexão", e);
-                clientGUI.addLogMessage("Erro no protocolo de conexão: " + e.getMessage());
+                clientGUI.addLogMessage("✗ Erro no protocolo de conexão: " + e.getMessage());
+                clientGUI.addLogMessage("=== CONEXÃO FALHOU ===");
                 disconnect();
                 return false;
             }
             
         } catch (IOException e) {
-            logger.error("Erro ao conectar ao servidor", e);
-            String errorMsg = "Erro ao conectar: ";
+            logger.error("Erro ao conectar ao servidor {}:{}", serverHost, serverPort, e);
+            clientGUI.addLogMessage("=== DIAGNÓSTICO DE CONEXÃO ===");
+            
+            String errorMsg = "✗ Falha na conexão: ";
+            String diagnostico = "";
+            String solucao = "";
+            
             if (e instanceof ConnectException) {
-                errorMsg += "Servidor não encontrado ou recusou a conexão";
+                errorMsg += "Conexão recusada";
+                diagnostico = "• O servidor não está rodando na porta " + serverPort + 
+                            "\n• Firewall bloqueando a conexão" +
+                            "\n• Porta ocupada por outro processo";
+                solucao = "• Verifique se o servidor está rodando\n• Teste com telnet " + serverHost + " " + serverPort;
+                
             } else if (e instanceof SocketTimeoutException) {
-                errorMsg += "Timeout - servidor não respondeu em 5 segundos";
+                errorMsg += "Timeout de conexão";
+                diagnostico = "• Servidor demorou mais de 5 segundos para responder" +
+                            "\n• Problemas de rede ou latência alta" +
+                            "\n• Servidor sobrecarregado";
+                solucao = "• Verifique a conexão de rede\n• Tente novamente em alguns segundos";
+                
             } else if (e instanceof UnknownHostException) {
-                errorMsg += "Host não encontrado - verifique o IP/nome do servidor";
+                errorMsg += "Host não encontrado";
+                diagnostico = "• Endereço IP/hostname incorreto: " + serverHost +
+                            "\n• Problemas de DNS" +
+                            "\n• Host não existe na rede";
+                solucao = "• Verifique o endereço do servidor\n• Teste ping " + serverHost;
+                
+            } else if (e instanceof NoRouteToHostException) {
+                errorMsg += "Rota não encontrada";
+                diagnostico = "• Não há rota de rede para " + serverHost +
+                            "\n• Problemas de roteamento" +
+                            "\n• Host em rede inacessível";
+                solucao = "• Verifique conectividade de rede\n• Contate administrador de rede";
+                
+            } else if (e instanceof PortUnreachableException) {
+                errorMsg += "Porta inacessível";
+                diagnostico = "• Porta " + serverPort + " não está acessível" +
+                            "\n• Servidor não está escutando nesta porta" +
+                            "\n• Bloqueio de firewall";
+                solucao = "• Confirme a porta correta do servidor\n• Verifique configurações de firewall";
+                
             } else {
-                errorMsg += e.getMessage();
+                errorMsg += e.getClass().getSimpleName() + ": " + e.getMessage();
+                diagnostico = "• Erro inesperado de rede";
+                solucao = "• Tente novamente\n• Verifique configurações de rede";
             }
+            
             clientGUI.addLogMessage(errorMsg);
+            clientGUI.addLogMessage("Diagnóstico possível:");
+            clientGUI.addLogMessage(diagnostico);
+            clientGUI.addLogMessage("Sugestões:");
+            clientGUI.addLogMessage(solucao);
+            clientGUI.addLogMessage("=== CONEXÃO FALHOU ===");
+            
             return false;
         }
     }
     
     public void disconnect() {
         try {
+            if (connected) {
+                clientGUI.addLogMessage("=== DESCONECTANDO ===");
+                logger.info("Iniciando desconexão do servidor");
+            }
+            
             connected = false;
             
-            if (in != null) in.close();
-            if (out != null) out.close();
-            if (socket != null) socket.close();
+            if (in != null) {
+                in.close();
+                clientGUI.addLogMessage("✓ Stream de entrada fechado");
+            }
+            if (out != null) {
+                out.close();
+                clientGUI.addLogMessage("✓ Stream de saída fechado");
+            }
+            if (socket != null && !socket.isClosed()) {
+                String remoteInfo = socket.getRemoteSocketAddress().toString();
+                socket.close();
+                clientGUI.addLogMessage("✓ Socket TCP fechado");
+                clientGUI.addLogMessage("Conexão com " + remoteInfo + " encerrada");
+            }
             
-            clientGUI.addLogMessage("Desconectado do servidor");
-            logger.info("Desconectado do servidor");
+            clientGUI.addLogMessage("=== DESCONECTADO ===");
+            logger.info("Desconectado do servidor com sucesso");
             
         } catch (IOException e) {
-            logger.error("Erro ao desconectar", e);
+            logger.error("Erro durante desconexão", e);
+            clientGUI.addLogMessage("⚠ Erro durante desconexão: " + e.getMessage());
+            clientGUI.addLogMessage("=== DESCONEXÃO FORÇADA ===");
         }
     }
     
@@ -143,6 +267,35 @@ public class ClientConnection {
 
             // For other validation errors, rethrow to let callers decide how to present them.
             throw new RuntimeException("Erro de validação: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Retorna informações detalhadas sobre o estado da conexão
+     */
+    public String getConnectionInfo() {
+        if (!isConnected()) {
+            return "Não conectado";
+        }
+        
+        try {
+            String localAddr = socket.getLocalAddress().getHostAddress();
+            int localPort = socket.getLocalPort();
+            String remoteAddr = socket.getInetAddress().getHostAddress();
+            int remotePort = socket.getPort();
+            String remoteHost = socket.getInetAddress().getHostName();
+            
+            return String.format("Conectado:\n" +
+                "• Local: %s:%d\n" +
+                "• Remoto: %s:%d (%s)\n" +
+                "• Socket: %s\n" +
+                "• Timeout leitura: %dms",
+                localAddr, localPort, 
+                remoteAddr, remotePort, remoteHost,
+                socket.isClosed() ? "Fechado" : "Aberto",
+                socket.getSoTimeout());
+        } catch (Exception e) {
+            return "Conectado (erro ao obter detalhes: " + e.getMessage() + ")";
         }
     }
     

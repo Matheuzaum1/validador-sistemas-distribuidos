@@ -1,8 +1,18 @@
 # Sistema Validador - Distribuído
 
-Um sistema bancário distribuído em Java para comunicação cliente-servidor com protocolo JSON personalizado, implementando operações CRUD de usuários, autenticação, transações financeiras e validação de protocolos.
+Um sistema bancário distribuído em Java para comunicação cliente-servidor com protocolo JSON personalizado, implementando operações CRUD de usuários, autenticação, transações financeiras e **diagnóstico avançado de conexões**.
 
-## � Requisitos
+## 🔧 Diagnóstico de Conexão Avançado
+
+O sistema agora possui **diagnóstico detalhado de conexões** que informa:
+- **Onde está se conectando** (host, porta, IPs)
+- **Por que a conexão falhou** (análise específica do erro)
+- **Como resolver** (sugestões práticas)
+- **Teste de conectividade prévia** (validação antes da conexão)
+
+📋 **Consulte**: [docs/diagnostico-conexao.md](docs/diagnostico-conexao.md) para detalhes completos
+
+## ⚙️ Requisitos
 
 ### Requisitos do Sistema
 - **Java 21+** (configurado para Java 21)
