@@ -1,9 +1,13 @@
 package com.distribuidos.server;
 
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.swing.*;
+import com.formdev.flatlaf.FlatDarkLaf;
 
 public class ServerMain {
     private static final Logger logger = LoggerFactory.getLogger(ServerMain.class);
@@ -13,16 +17,22 @@ public class ServerMain {
         System.setProperty("file.encoding", "UTF-8");
         System.setProperty("java.awt.fonts", "true");
         
-        // Configura Look and Feel
+        // Configura Look and Feel - FlatLaf (tema moderno)
         try {
-            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
+            UIManager.setLookAndFeel(new FlatDarkLaf());
+            logger.info("Tema FlatDarkLaf aplicado com sucesso");
         } catch (Exception e) {
-            logger.warn("Não foi possível definir o Look and Feel", e);
+            logger.warn("Não foi possível aplicar tema FlatLaf, usando Look and Feel padrão", e);
+            try {
+                for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                    if ("Nimbus".equals(info.getName())) {
+                        UIManager.setLookAndFeel(info.getClassName());
+                        break;
+                    }
+                }
+            } catch (Exception e2) {
+                logger.warn("Não foi possível definir nenhum Look and Feel customizado", e2);
+            }
         }
         
         // Inicia a GUI do servidor

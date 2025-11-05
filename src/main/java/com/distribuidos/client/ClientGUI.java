@@ -1,18 +1,40 @@
 package com.distribuidos.client;
 
-import com.distribuidos.common.MessageBuilder;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.regex.Pattern;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.distribuidos.common.MessageBuilder;
+import com.distribuidos.common.ToastNotification;
+import com.distribuidos.common.UIColors;
+import com.distribuidos.common.ValidationHelper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ClientGUI extends JFrame {
     private static final Logger logger = LoggerFactory.getLogger(ClientGUI.class);
@@ -132,7 +154,7 @@ public class ClientGUI extends JFrame {
         
     connectionStatusLabel = new JLabel("Status: Desconectado");
     connectionStatusLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
-    connectionStatusLabel.setForeground(Color.RED);
+    connectionStatusLabel.setForeground(UIColors.ERROR);
         panel.add(connectionStatusLabel, BorderLayout.SOUTH);
         
         return panel;
@@ -152,6 +174,10 @@ public class ClientGUI extends JFrame {
         fieldsPanel.add(new JLabel("Nome:"), gbc);
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
         nomeField = new JTextField(20);
+        nomeField.setToolTipText("Mínimo 6 caracteres");
+        nomeField.getDocument().addDocumentListener(
+            new ValidationHelper.TextValidator(nomeField, 6)
+        );
         fieldsPanel.add(nomeField, gbc);
         
         // CPF
@@ -161,6 +187,9 @@ public class ClientGUI extends JFrame {
         cpfField = new JTextField(20);
         cpfField.setDocument(new CpfFormatter()); // Formatação automática de CPF
         cpfField.setToolTipText("Digite apenas os números do CPF (ex: 12345678901)");
+        cpfField.getDocument().addDocumentListener(
+            new ValidationHelper.CPFValidator(cpfField)
+        );
         fieldsPanel.add(cpfField, gbc);
         
         // Senha
@@ -168,6 +197,10 @@ public class ClientGUI extends JFrame {
         fieldsPanel.add(new JLabel("Senha:"), gbc);
         gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
         senhaField = new JPasswordField(20);
+        senhaField.setToolTipText("Mínimo 6 caracteres");
+        senhaField.getDocument().addDocumentListener(
+            new ValidationHelper.PasswordValidator(senhaField, 6)
+        );
         fieldsPanel.add(senhaField, gbc);
         
         panel.add(fieldsPanel, BorderLayout.NORTH);
@@ -249,7 +282,7 @@ public class ClientGUI extends JFrame {
             
             // Feedback visual durante conexão
             connectionStatusLabel.setText("Status: Conectando...");
-            connectionStatusLabel.setForeground(Color.ORANGE);
+            connectionStatusLabel.setForeground(UIColors.WARNING);
             connectButton.setEnabled(false);
             addLogMessage("=== INICIANDO PROCESSO DE CONEXÃO ===");
             addLogMessage("Servidor destino: " + host + ":" + port);
@@ -289,12 +322,12 @@ public class ClientGUI extends JFrame {
                     
                     if (connectionResult[0]) {
                         connectionStatusLabel.setText("Status: Conectado a " + host + ":" + port);
-                        connectionStatusLabel.setForeground(new Color(0, 128, 0)); // darker green
+                        connectionStatusLabel.setForeground(UIColors.SUCCESS);
                         updateUI();
                         addLogMessage("🎉 Conexão estabelecida com sucesso!");
                     } else {
                         connectionStatusLabel.setText("Status: Falha na conexão");
-                        connectionStatusLabel.setForeground(Color.RED);
+                        connectionStatusLabel.setForeground(UIColors.ERROR);
                         addLogMessage("💥 Falha na conexão!");
                         
                         String diagnosticMessage = "Falha ao conectar ao servidor " + host + ":" + port + 
@@ -318,13 +351,13 @@ public class ClientGUI extends JFrame {
         } catch (NumberFormatException e) {
             connectButton.setEnabled(true);
             connectionStatusLabel.setText("Status: Desconectado");
-            connectionStatusLabel.setForeground(Color.RED);
+            connectionStatusLabel.setForeground(UIColors.ERROR);
             JOptionPane.showMessageDialog(this, "Porta deve ser um número válido (ex: 8080)", 
                 "Erro de Validação", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
             connectButton.setEnabled(true);
             connectionStatusLabel.setText("Status: Erro");
-            connectionStatusLabel.setForeground(Color.RED);
+            connectionStatusLabel.setForeground(UIColors.ERROR);
             JOptionPane.showMessageDialog(this, "Erro ao conectar: " + e.getMessage(), 
                 "Erro", JOptionPane.ERROR_MESSAGE);
         }
@@ -337,21 +370,19 @@ public class ClientGUI extends JFrame {
         
         connection.disconnect();
         connectionStatusLabel.setText("Status: Desconectado");
-        connectionStatusLabel.setForeground(Color.RED);
+        connectionStatusLabel.setForeground(UIColors.ERROR);
         updateUI();
     }
     
     private void performLogin() {
         if (!validateCpf(cpfField.getText())) {
-            JOptionPane.showMessageDialog(this, "CPF deve estar no formato 000.000.000-00", 
-                "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Validação", "CPF deve estar no formato 000.000.000-00");
             return;
         }
         
         String senha = new String(senhaField.getPassword());
         if (senha.length() < 6) {
-            JOptionPane.showMessageDialog(this, "Senha deve ter pelo menos 6 caracteres", 
-                "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Validação", "Senha deve ter pelo menos 6 caracteres");
             return;
         }
         
@@ -364,21 +395,27 @@ public class ClientGUI extends JFrame {
                 isLoggedIn = true;
                 
                 userInfoLabel.setText("Usuário: " + cpfField.getText() + " (Logado)");
-                userInfoLabel.setForeground(new Color(0, 70, 140)); // dark blue for readability
+                userInfoLabel.setForeground(UIColors.PRIMARY);
                 
-                JOptionPane.showMessageDialog(this, "Login realizado com sucesso!", 
-                    "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                // Bloquear CPF após login (CPF não pode ser alterado)
+                cpfField.setEnabled(false);
+                cpfField.setText(""); // Limpar para segurança
+                
+                // Permitir edição de Nome e Senha após login
+                nomeField.setEnabled(true);
+                senhaField.setEnabled(true);
+                
+                ToastNotification.showSuccess("Sucesso", "Login realizado com sucesso!");
+                updateUI();
             } else {
-                JOptionPane.showMessageDialog(this, MessageBuilder.extractInfo(response), 
-                    "Erro de Login", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Login", MessageBuilder.extractInfo(response));
+                updateUI();
             }
-            
-            updateUI();
             
         } catch (Exception e) {
             logger.error("Erro no login", e);
-            JOptionPane.showMessageDialog(this, "Erro no login: " + e.getMessage(), 
-                "Erro", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Erro", "Erro no login: " + e.getMessage());
+            updateUI();
         }
     }
     
@@ -395,21 +432,30 @@ public class ClientGUI extends JFrame {
                 isLoggedIn = false;
                 
                 userInfoLabel.setText("Usuário: Não logado");
-                userInfoLabel.setForeground(Color.BLACK);
+                userInfoLabel.setForeground(UIColors.TEXT_PRIMARY);
                 
-                JOptionPane.showMessageDialog(this, "Logout realizado com sucesso!", 
-                    "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                // Re-habilitar campo CPF após logout para novo login
+                cpfField.setEnabled(true);
+                
+                // Desabilitar campos de edição após logout (edição só durante sessão ativa)
+                nomeField.setEnabled(false);
+                senhaField.setEnabled(false);
+                
+                // Limpar campos para segurança
+                cpfField.setText("");
+                nomeField.setText("");
+                senhaField.setText("");
+                
+                ToastNotification.showSuccess("Logout", "Desconectado com sucesso!");
             } else {
-                JOptionPane.showMessageDialog(this, MessageBuilder.extractInfo(response), 
-                    "Erro de Logout", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Erro de Logout", MessageBuilder.extractInfo(response));
             }
             
             updateUI();
             
         } catch (Exception e) {
             logger.error("Erro no logout", e);
-            JOptionPane.showMessageDialog(this, "Erro no logout: " + e.getMessage(), 
-                "Erro", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Erro", "Erro no logout: " + e.getMessage());
         }
     }
     
@@ -423,25 +469,21 @@ public class ClientGUI extends JFrame {
                 new String(senhaField.getPassword()));
             
             if (MessageBuilder.extractStatus(response)) {
-                JOptionPane.showMessageDialog(this, "Usuário criado com sucesso!", 
-                    "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                ToastNotification.showSuccess("Usuário Criado", "Usuário registrado com sucesso!");
                 clearFields();
             } else {
-                JOptionPane.showMessageDialog(this, MessageBuilder.extractInfo(response), 
-                    "Erro", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Erro", MessageBuilder.extractInfo(response));
             }
             
         } catch (Exception e) {
             logger.error("Erro ao criar usuário", e);
-            JOptionPane.showMessageDialog(this, "Erro ao criar usuário: " + e.getMessage(), 
-                "Erro", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Erro", "Erro ao criar usuário: " + e.getMessage());
         }
     }
     
     private void performReadUser() {
         if (!isLoggedIn) {
-            JOptionPane.showMessageDialog(this, "Você precisa estar logado para ler dados do usuário", 
-                "Erro", JOptionPane.WARNING_MESSAGE);
+            ToastNotification.showWarning("Aviso", "Você precisa estar logado para ler dados do usuário");
             return;
         }
         
@@ -459,24 +501,20 @@ public class ClientGUI extends JFrame {
                     usuario.get("saldo").asDouble()
                 );
                 
-                JOptionPane.showMessageDialog(this, info, "Dados do Usuário", 
-                    JOptionPane.INFORMATION_MESSAGE);
+                ToastNotification.showSuccess("Dados do Usuário", info);
             } else {
-                JOptionPane.showMessageDialog(this, MessageBuilder.extractInfo(response), 
-                    "Erro", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Erro", MessageBuilder.extractInfo(response));
             }
             
         } catch (Exception e) {
             logger.error("Erro ao ler usuário", e);
-            JOptionPane.showMessageDialog(this, "Erro ao ler usuário: " + e.getMessage(), 
-                "Erro", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Erro", "Erro ao ler usuário: " + e.getMessage());
         }
     }
     
     private void performUpdateUser() {
         if (!isLoggedIn) {
-            JOptionPane.showMessageDialog(this, "Você precisa estar logado para alterar dados", 
-                "Erro", JOptionPane.WARNING_MESSAGE);
+            ToastNotification.showWarning("Aviso", "Você precisa estar logado para alterar dados");
             return;
         }
         
@@ -484,20 +522,17 @@ public class ClientGUI extends JFrame {
         String senha = new String(senhaField.getPassword());
         
         if (nome.isEmpty() && senha.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Preencha pelo menos o nome ou a senha para atualizar", 
-                "Erro de Validação", JOptionPane.WARNING_MESSAGE);
+            ToastNotification.showWarning("Validação", "Preencha pelo menos o nome ou a senha para atualizar");
             return;
         }
         
         if (!nome.isEmpty() && nome.length() < 6) {
-            JOptionPane.showMessageDialog(this, "Nome deve ter pelo menos 6 caracteres", 
-                "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Validação", "Nome deve ter pelo menos 6 caracteres");
             return;
         }
         
         if (!senha.isEmpty() && senha.length() < 6) {
-            JOptionPane.showMessageDialog(this, "Senha deve ter pelo menos 6 caracteres", 
-                "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Validação", "Senha deve ter pelo menos 6 caracteres");
             return;
         }
         
@@ -507,25 +542,21 @@ public class ClientGUI extends JFrame {
                 senha.isEmpty() ? null : senha);
             
             if (MessageBuilder.extractStatus(response)) {
-                JOptionPane.showMessageDialog(this, "Dados atualizados com sucesso!", 
-                    "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                ToastNotification.showSuccess("Sucesso", "Dados atualizados com sucesso!");
                 clearFields();
             } else {
-                JOptionPane.showMessageDialog(this, MessageBuilder.extractInfo(response), 
-                    "Erro", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Erro", MessageBuilder.extractInfo(response));
             }
             
         } catch (Exception e) {
             logger.error("Erro ao atualizar usuário", e);
-            JOptionPane.showMessageDialog(this, "Erro ao atualizar usuário: " + e.getMessage(), 
-                "Erro", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Erro", "Erro ao atualizar usuário: " + e.getMessage());
         }
     }
     
     private void performDeleteUser() {
         if (!isLoggedIn) {
-            JOptionPane.showMessageDialog(this, "Você precisa estar logado para deletar a conta", 
-                "Erro", JOptionPane.WARNING_MESSAGE);
+            ToastNotification.showWarning("Aviso", "Você precisa estar logado para deletar a conta");
             return;
         }
         
@@ -545,22 +576,19 @@ public class ClientGUI extends JFrame {
                 isLoggedIn = false;
                 
                 userInfoLabel.setText("Usuário: Não logado");
-                userInfoLabel.setForeground(Color.BLACK);
+                userInfoLabel.setForeground(UIColors.TEXT_PRIMARY);
                 
-                JOptionPane.showMessageDialog(this, "Conta deletada com sucesso!", 
-                    "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                ToastNotification.showSuccess("Sucesso", "Conta deletada com sucesso!");
                 clearFields();
             } else {
-                JOptionPane.showMessageDialog(this, MessageBuilder.extractInfo(response), 
-                    "Erro", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Erro", MessageBuilder.extractInfo(response));
             }
             
             updateUI();
             
         } catch (Exception e) {
             logger.error("Erro ao deletar usuário", e);
-            JOptionPane.showMessageDialog(this, "Erro ao deletar usuário: " + e.getMessage(), 
-                "Erro", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Erro", "Erro ao deletar usuário: " + e.getMessage());
         }
     }
     
@@ -570,20 +598,17 @@ public class ClientGUI extends JFrame {
         String senha = new String(senhaField.getPassword());
         
         if (nome.length() < 6) {
-            JOptionPane.showMessageDialog(this, "Nome deve ter pelo menos 6 caracteres", 
-                "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Validação", "Nome deve ter pelo menos 6 caracteres");
             return false;
         }
         
         if (!validateCpf(cpf)) {
-            JOptionPane.showMessageDialog(this, "CPF deve estar no formato 000.000.000-00", 
-                "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Validação", "CPF deve estar no formato 000.000.000-00");
             return false;
         }
         
         if (senha.length() < 6) {
-            JOptionPane.showMessageDialog(this, "Senha deve ter pelo menos 6 caracteres", 
-                "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError("Validação", "Senha deve ter pelo menos 6 caracteres");
             return false;
         }
         
@@ -651,17 +676,17 @@ public class ClientGUI extends JFrame {
 
         transferButton.addActionListener(e -> {
             if (!connection.isConnected()) {
-                JOptionPane.showMessageDialog(this, "Você precisa estar conectado ao servidor", "Erro", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Erro", "Você precisa estar conectado ao servidor");
                 return;
             }
             if (!isLoggedIn || currentToken == null) {
-                JOptionPane.showMessageDialog(this, "Você precisa estar logado para realizar transações", "Erro", JOptionPane.WARNING_MESSAGE);
+                ToastNotification.showWarning("Aviso", "Você precisa estar logado para realizar transações");
                 return;
             }
 
             String cpfDestino = cpfDestinoField.getText().trim();
             if (!validateCpf(cpfDestino)) {
-                JOptionPane.showMessageDialog(this, "CPF destino inválido. Formato: 000.000.000-00", "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Validação", "CPF destino inválido. Formato: 000.000.000-00");
                 return;
             }
 
@@ -670,30 +695,30 @@ public class ClientGUI extends JFrame {
                 valor = Double.parseDouble(valorField.getText().trim().replace(',', '.'));
                 if (valor <= 0) throw new NumberFormatException();
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Valor inválido. Informe um número maior que zero.", "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Validação", "Valor inválido. Informe um número maior que zero.");
                 return;
             }
 
             try {
                 String response = connection.transfer(currentToken, cpfDestino, valor);
                 if (MessageBuilder.extractStatus(response)) {
-                    JOptionPane.showMessageDialog(this, "Transferência efetuada com sucesso", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                    ToastNotification.showSuccess("Sucesso", "Transferência efetuada com sucesso");
                 } else {
-                    JOptionPane.showMessageDialog(this, MessageBuilder.extractInfo(response), "Erro", JOptionPane.ERROR_MESSAGE);
+                    ToastNotification.showError("Erro", MessageBuilder.extractInfo(response));
                 }
                 addLogMessage("Transação transferir -> " + response);
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Erro ao realizar transferência: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Erro", "Erro ao realizar transferência: " + ex.getMessage());
             }
         });
 
         depositButton.addActionListener(e -> {
             if (!connection.isConnected()) {
-                JOptionPane.showMessageDialog(this, "Você precisa estar conectado ao servidor", "Erro", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Erro", "Você precisa estar conectado ao servidor");
                 return;
             }
             if (!isLoggedIn || currentToken == null) {
-                JOptionPane.showMessageDialog(this, "Você precisa estar logado para realizar depósitos", "Erro", JOptionPane.WARNING_MESSAGE);
+                ToastNotification.showWarning("Aviso", "Você precisa estar logado para realizar depósitos");
                 return;
             }
 
@@ -702,20 +727,20 @@ public class ClientGUI extends JFrame {
                 valor = Double.parseDouble(valorField.getText().trim().replace(',', '.'));
                 if (valor <= 0) throw new NumberFormatException();
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Valor inválido. Informe um número maior que zero.", "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Validação", "Valor inválido. Informe um número maior que zero.");
                 return;
             }
 
             try {
                 String response = connection.deposit(currentToken, valor);
                 if (MessageBuilder.extractStatus(response)) {
-                    JOptionPane.showMessageDialog(this, "Depósito efetuado com sucesso", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                    ToastNotification.showSuccess("Sucesso", "Depósito efetuado com sucesso");
                 } else {
-                    JOptionPane.showMessageDialog(this, MessageBuilder.extractInfo(response), "Erro", JOptionPane.ERROR_MESSAGE);
+                    ToastNotification.showError("Erro", MessageBuilder.extractInfo(response));
                 }
                 addLogMessage("Transação depositar -> " + response);
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Erro ao realizar depósito: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                ToastNotification.showError("Erro", "Erro ao realizar depósito: " + ex.getMessage());
             }
         });
 

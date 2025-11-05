@@ -1,14 +1,9 @@
 package com.distribuidos.server;
 
-import com.distribuidos.common.ClientInfo;
-import com.distribuidos.common.Usuario;
-import com.distribuidos.database.DatabaseManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.net.InetAddress;
@@ -19,9 +14,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableModel;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.distribuidos.common.ClientInfo;
+import com.distribuidos.common.UIColors;
+import com.distribuidos.common.Usuario;
+import com.distribuidos.database.DatabaseManager;
+
 public class ServerGUI extends JFrame {
     private static final Logger logger = LoggerFactory.getLogger(ServerGUI.class);
-    private static final Color OK_COLOR = new Color(0, 128, 0); // darker green for better contrast
     
     private JTextArea logArea;
     private JTextField portField;
@@ -109,8 +126,8 @@ public class ServerGUI extends JFrame {
         JPanel infoPanel = new JPanel(new GridLayout(2, 1));
         
     statusLabel = new JLabel("Status: Parado");
-        statusLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
-    statusLabel.setForeground(Color.RED);
+    statusLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+    statusLabel.setForeground(UIColors.ERROR);
         infoPanel.add(statusLabel);
         
         serverInfoLabel = new JLabel();
@@ -267,7 +284,7 @@ public class ServerGUI extends JFrame {
             portField.setEnabled(false);
             
                 statusLabel.setText("Status: Executando");
-                statusLabel.setForeground(OK_COLOR);
+                statusLabel.setForeground(UIColors.SUCCESS);
             
             addLogMessage("Servidor iniciado na porta " + port);
             updateServerInfo();
@@ -308,7 +325,7 @@ public class ServerGUI extends JFrame {
             portField.setEnabled(true);
             
             statusLabel.setText("Status: Parado");
-            statusLabel.setForeground(Color.RED);
+            statusLabel.setForeground(UIColors.ERROR);
             
             addLogMessage("Servidor parado");
             updateServerInfo();

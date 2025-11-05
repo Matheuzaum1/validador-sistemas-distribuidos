@@ -51,6 +51,13 @@
             <version>0.4</version>
         </dependency>
         
+        <!-- Tema moderno para GUI -->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.2.1</version>
+        </dependency>
+        
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
