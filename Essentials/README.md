@@ -1,9 +1,9 @@
 
 # Protocolo de Mensagens - Sistema Bancário Simples
 
-Versão atual: 1.3
+Versão atual: 1.4
 
-Últimos tópicos atualizados: `4.6.` `7.3.`
+Últimos tópicos atualizados: `4.11.`
 
 Um projeto para a disciplina de Sistemas Distribuídos que define um protocolo de comunicação baseado em JSON para as operações de um sistema bancário simplificado.
 
@@ -101,6 +101,7 @@ Toda mensagem trocada deve conter um campo `operacao`. Em envios de mensagem ao 
 * `transacao_criar`
 * `transacao_ler`
 * `depositar`
+* `erro_servidor` (Apenas o lado servidor recebe)
 
 ### 3.3. Padrão de Resposta (`status` e `info`)
 
@@ -523,6 +524,35 @@ ADENDO: Muito provavelmente caso o servidor se conecte com sucesso, ele nem mesm
 
 ```
 
+### 4.11. Erro na resposta do servidor (`erro_servidor`)
+Essa ação permite ao usuário reportar erros ao servidor em casos em que o servidor envia mensagens incorretas.
+
+Por exemplo caso o servidor responda com o usuário "null" durante a operação "usuario_ler"
+
+#### Recebimento (Servidor → Cliente) do exemplo acima
+
+```
+{
+  "operacao": "usuario_ler",
+  "status": true,
+  "info": "Dados do usuário recuperados com sucesso.",
+  "usuario": null
+}
+```
+
+O cliente deve ser capaz de reportar este erro:
+
+#### Envio (Cliente → Servidor)
+
+```
+{
+  "operacao": "erro_servidor",
+  "operacao_enviada": "usuario_ler",
+  "info": "O usuário enviado pelo servidor era nulo".
+}
+```
+
+Isso é um requisito não funcional do professor, o servidor apenas deve dar um print no log com a operacao "erro_servidor" recebida.
 
 ## 5. Em caso de erro
 

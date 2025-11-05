@@ -1,7 +1,12 @@
-package validador;
+package br.com.banco.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 
 public class Validator {
 
@@ -10,6 +15,41 @@ public class Validator {
     // ObjectMapper é a classe principal do Jackson para converter JSON.
     // É uma boa prática reutilizar a mesma instância.
     private static final ObjectMapper mapper = new ObjectMapper();
+    // --- DEFINIÇÃO DAS CHAVES ESPERADAS ---
+
+    private static final Map<RulesEnum, Set<String>> EXPECTED_CLIENT_KEYS = new HashMap<>();
+    private static final Map<RulesEnum, Set<String>> EXPECTED_SERVER_KEYS = new HashMap<>();
+
+    // Bloco estático para inicializar os mapas
+    static {
+        // Cliente -> Servidor
+        EXPECTED_CLIENT_KEYS.put(RulesEnum.CONECTAR, Set.of("operacao"));
+        EXPECTED_CLIENT_KEYS.put(RulesEnum.USUARIO_LOGIN, Set.of("operacao", "cpf", "senha"));
+        EXPECTED_CLIENT_KEYS.put(RulesEnum.USUARIO_CRIAR, Set.of("operacao", "nome", "cpf", "senha"));
+        EXPECTED_CLIENT_KEYS.put(RulesEnum.USUARIO_LER, Set.of("operacao", "token"));
+        EXPECTED_CLIENT_KEYS.put(RulesEnum.USUARIO_ATUALIZAR, Set.of("operacao", "token", "usuario"));
+        EXPECTED_CLIENT_KEYS.put(RulesEnum.USUARIO_DELETAR, Set.of("operacao", "token"));
+        EXPECTED_CLIENT_KEYS.put(RulesEnum.USUARIO_LOGOUT, Set.of("operacao", "token"));
+        EXPECTED_CLIENT_KEYS.put(RulesEnum.TRANSACAO_CRIAR, Set.of("operacao", "token", "valor", "cpf_destino"));
+        EXPECTED_CLIENT_KEYS.put(RulesEnum.TRANSACAO_LER, Set.of("operacao", "token", "data_inicial", "data_final"));
+        EXPECTED_CLIENT_KEYS.put(RulesEnum.DEPOSITAR, Set.of("operacao", "token", "valor_enviado"));
+        EXPECTED_CLIENT_KEYS.put(RulesEnum.ERRO_SERVIDOR, Set.of("operacao", "operacao_enviada", "info"));
+
+        // Servidor -> Cliente (Respostas)
+        // Chaves base para todas as respostas
+        Set<String> serverBaseKeys = Set.of("operacao", "status", "info");
+        // Respostas de sucesso que contêm dados adicionais
+        EXPECTED_SERVER_KEYS.put(RulesEnum.USUARIO_LOGIN, Set.of("operacao", "status", "info", "token"));
+        EXPECTED_SERVER_KEYS.put(RulesEnum.USUARIO_LER, Set.of("operacao", "status", "info", "usuario"));
+        EXPECTED_SERVER_KEYS.put(RulesEnum.TRANSACAO_LER, Set.of("operacao", "status", "info", "transacoes"));
+        
+        // Para as demais operações, a resposta (sucesso ou falha) só contém as chaves base.
+        for (RulesEnum rule : RulesEnum.values()) {
+            EXPECTED_CLIENT_KEYS.computeIfAbsent(rule, k -> new HashSet<>()); // Garante que não haja nulls
+            // Se a regra já não tiver chaves específicas de servidor, usa as chaves base
+            EXPECTED_SERVER_KEYS.computeIfAbsent(rule, k -> serverBaseKeys);
+        }
+    }
 
     /**
      * Valida uma mensagem JSON enviada do Cliente para o Servidor.
@@ -28,8 +68,12 @@ public class Validator {
         // NOTA: Certifique-se de que o RulesEnum.java contenha a operação DEPOSITAR.
         RulesEnum operacao = RulesEnum.getEnum(operacaoNode.asText());
 
+        checkExtraKeys(rootNode, operacao, EXPECTED_CLIENT_KEYS);
+
         // Chama o método de validação específico para a operação
         switch (operacao) {
+            case CONECTAR:
+                break;
             case USUARIO_LOGIN:
                 validateUsuarioLoginClient(rootNode);
                 break;
@@ -57,8 +101,8 @@ public class Validator {
             case DEPOSITAR:
                 validateDepositarClient(rootNode);
                 break;
-            case CONECTAR:
-                validateConectarClient(rootNode);
+            case ERRO_SERVIDOR:
+                validateErroServidorClient(rootNode);
                 break;
             // =======================================================
             default:
@@ -88,6 +132,18 @@ public class Validator {
 
         RulesEnum operacao = RulesEnum.getEnum(operacaoNode.asText());
 
+        Set<String> expectedKeysForThisResponse;
+        if (statusNode.asBoolean()) {
+            expectedKeysForThisResponse = EXPECTED_SERVER_KEYS.get(operacao);
+            if (expectedKeysForThisResponse == null) { // Segurança extra
+                throw new IllegalArgumentException("Definição de chaves não encontrada para operação de sucesso: " + operacao);
+            }
+        } else {
+            expectedKeysForThisResponse = Set.of("operacao", "status", "info");
+        }
+
+        checkExtraKeys(rootNode, operacao, Map.of(operacao, expectedKeysForThisResponse));
+
         // Chama a validação específica apenas se o status for true (sucesso)
         if (statusNode.asBoolean()) {
             switch (operacao) {
@@ -99,9 +155,6 @@ public class Validator {
                     break;
                 case TRANSACAO_LER:
                     validateTransacaoLerServer(rootNode);
-                    break;
-                case CONECTAR:
-                    validateConectarServer(rootNode);
                     break;
                 // Outras operações de sucesso (como criar, atualizar, deletar e depositar)
                 // não retornam dados adicionais, então não precisam de validação extra.
@@ -170,9 +223,10 @@ public class Validator {
         getRequiredNumber(node, "valor_enviado");
     }
 
-    private static void validateConectarClient(JsonNode node) {
-        // A operação conectar não requer campos adicionais além de 'operacao'
-        // Já validamos que 'operacao' existe e tem o valor correto
+    private static void validateErroServidorClient(JsonNode node) {
+        getRequiredField(node, "operacao");
+        getRequiredField(node, "operacao_enviada");
+        getRequiredField(node, "info");
     }
     // =======================================================
 
@@ -211,11 +265,6 @@ public class Validator {
             validateDateFormat(transacao, "criado_em");
             validateDateFormat(transacao, "atualizado_em");
         }
-    }
-
-    private static void validateConectarServer(JsonNode node) {
-        // A resposta de conectar não requer campos adicionais além de 'operacao', 'status' e 'info'
-        // Estes já são validados no método validateServer principal
     }
 
     // ===================================================================================
@@ -308,5 +357,20 @@ public class Validator {
             throw new IllegalArgumentException("O campo '" + fieldName + "' deve ser um array JSON (ex: [ ... ]).");
         }
         return field;
+    }
+
+    private static void checkExtraKeys(JsonNode node, RulesEnum operacao, Map<RulesEnum, Set<String>> expectedKeysMap) {
+        Set<String> expected = expectedKeysMap.get(operacao);
+        if (expected == null) {
+            throw new IllegalArgumentException("Definição de chaves esperadas não encontrada para a operação: " + operacao);
+        }
+        
+        Iterator<String> actualKeys = node.fieldNames();
+        while (actualKeys.hasNext()) {
+            String key = actualKeys.next();
+            if (!expected.contains(key)) {
+                throw new IllegalArgumentException("Chave inesperada '" + key + "' encontrada para a operação '" + operacao + "'.");
+            }
+        }
     }
 }
