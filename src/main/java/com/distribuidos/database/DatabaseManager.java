@@ -1,6 +1,9 @@
 package com.distribuidos.database;
 
 import com.distribuidos.common.Usuario;
+import com.distribuidos.exception.DatabaseException;
+import com.distribuidos.exception.ErrorCode;
+import com.distribuidos.util.RetryUtil;
 import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +55,8 @@ public class DatabaseManager {
                 logger.info("Tabelas de usuarios e transacoes criadas/verificadas com sucesso");
             }
         } catch (SQLException e) {
-            logger.error("Erro ao inicializar banco de dados", e);
-            throw new RuntimeException("Falha ao inicializar banco de dados", e);
+            logger.error("Erro ao inicializar banco de dados: {}", e.getMessage(), e);
+            throw new DatabaseException("Falha ao inicializar banco de dados", e);
         }
     }
     
