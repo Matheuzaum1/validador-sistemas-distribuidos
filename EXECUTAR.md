@@ -1,76 +1,169 @@
-# Como Executar o Sistema
+# Sistema Distribuído - Validador
 
-## Pré-requisitos
+Sistema cliente-servidor distribuído com operações CRUD de usuários e transações bancárias.
 
-- Java 17 ou superior instalado
-- Maven 3.6+ instalado
+## 🚀 Como Executar
 
-## Executar o Sistema
+### Opção 1: Scripts Simples (.bat para Windows)
 
-### Opção 1: Launcher Unificado (Recomendado)
-```bash
-# Execute o launcher e escolha a opção
-.\launcher.bat
+1. **Compilar o projeto:**
+   ```cmd
+   compilar.bat
+   ```
+
+2. **Iniciar o servidor (em um terminal):**
+   ```cmd
+   iniciar-servidor.bat
+   ```
+
+3. **Iniciar o cliente (em outro terminal):**
+   ```cmd
+   iniciar-cliente.bat
+   ```
+
+### Opção 2: Scripts PowerShell (.ps1)
+
+1. **Compilar o projeto:**
+   ```powershell
+   .\compilar.ps1
+   ```
+
+2. **Iniciar o servidor:**
+   ```powershell
+   .\iniciar-servidor.ps1
+   ```
+
+3. **Iniciar o cliente:**
+   ```powershell
+   .\iniciar-cliente.ps1
+   ```
+
+### Opção 3: Menu Interativo
+
+Execute o script de gerenciamento completo:
+```cmd
+scripts\sistema.bat
 ```
 
-### Opção 2: Scripts Individuais
+### Opção 4: Comandos Maven Diretos
+
 ```bash
-# Servidor
-.\start-server.bat
-
-# Cliente (em outro terminal)
-.\start-client.bat
-```
-
-### Opção 3: Compilação Manual
-```bash
-# Definir Java 17 (se necessário)
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.16.8-hotspot"
-
 # Compilar
-mvn clean compile
+mvn clean package -DskipTests
 
-# Executar servidor
-mvn exec:java -Dexec.mainClass=com.distribuidos.server.ServerMain
+# Iniciar servidor
+java -cp target/validador-sistemas-distribuidos-1.0.0.jar com.distribuidos.server.ServerMain
 
-# Executar cliente (em outro terminal)
-mvn exec:java -Dexec.mainClass=com.distribuidos.client.ClientMain
+# Iniciar cliente
+java -cp target/validador-sistemas-distribuidos-1.0.0.jar com.distribuidos.client.ClientMain
 ```
 
-## Teste do Sistema
+## 📋 Pré-requisitos
 
-1. Execute o servidor primeiro (opção 1 no launcher)
-2. Execute o cliente (opção 2 no launcher)
-3. No cliente:
-   - Conecte ao servidor (localhost:8080)
-   - Crie um usuário
-   - Faça login
-   - Teste as funcionalidades (depósito, transferência, extrato)
+- **Java 17** ou superior
+- **Maven 3.6+**
+- **Windows 10/11** (para scripts .bat e .ps1)
 
-## Funcionalidades Implementadas
+## 🎯 Fluxo de Uso da Interface
 
-### Cliente
+### 1. Conexão com Servidor
+Ao abrir o cliente, você verá um diálogo solicitando:
+- **Host**: localhost (padrão)
+- **Porta**: 8080 (padrão)
 
-- ✅ Conexão com servidor
-- ✅ Cadastro de usuário
-- ✅ Login/Logout
-- ✅ Depósito na conta
-- ✅ Transferência entre contas
-- ✅ Consulta de extrato
-- ✅ Interface gráfica intuitiva
+### 2. Autenticação
+Após conectar, você terá duas opções:
 
-### Servidor
+#### **Criar Nova Conta**
+- Preencha: Nome (mín. 6 caracteres)
+- CPF (formatado automaticamente: 000.000.000-00)
+- Senha (mín. 6 caracteres)
+- O login é feito automaticamente após criação bem-sucedida
 
-- ✅ Aceita múltiplas conexões
-- ✅ Banco de dados SQLite
-- ✅ Autenticação por token
-- ✅ Validação de segurança
-- ✅ Interface gráfica de administração
-- ✅ Logs detalhados
+#### **Fazer Login**
+- CPF (formatado automaticamente)
+- Senha
 
-### Validações
+### 3. Operações Disponíveis
 
-- ✅ Formatação de CPF
-- ✅ Validação de campos obrigatórios
-- ✅ Segurança de sessão
-- ✅ Controle de acesso por usuário
+Após login, você terá acesso a duas abas:
+
+#### **Aba Conta** (Operações CRUD)
+- **Consultar Dados**: Ver informações da conta e saldo
+- **Atualizar Dados**: Alterar nome e/ou senha
+- **Deletar Conta**: Remover conta permanentemente
+
+#### **Aba Transações**
+- **CPF Destino**: Formatado automaticamente (000.000.000-00)
+- **Valor**: Formatado em reais (R$ 0.000,00)
+- **Transferir**: Enviar dinheiro para outro usuário
+- **Depositar**: Adicionar saldo à sua conta
+
+## 📁 Estrutura do Projeto
+
+```
+validador-sistemas-distribuidos/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/distribuidos/
+│   │   │       ├── client/        # Cliente GUI
+│   │   │       ├── server/        # Servidor
+│   │   │       ├── common/        # Classes compartilhadas
+│   │   │       └── database/      # Gerenciador de BD
+│   │   └── resources/
+│   │       └── logback.xml        # Configuração de logs
+│   └── test/                      # Testes unitários
+├── scripts/
+│   ├── build.bat                  # Compilação
+│   ├── server.bat                 # Iniciar servidor
+│   ├── client.bat                 # Iniciar cliente
+│   └── sistema.bat                # Menu interativo
+├── docs/                          # Documentação
+├── compilar.bat                   # Script de compilação
+├── compilar.ps1                   # Script PS de compilação
+├── iniciar-servidor.bat          # Iniciar servidor
+├── iniciar-servidor.ps1          # Iniciar servidor (PS)
+├── iniciar-cliente.bat           # Iniciar cliente
+├── iniciar-cliente.ps1           # Iniciar cliente (PS)
+└── pom.xml                        # Configuração Maven
+```
+
+## 🔧 Resolução de Problemas
+
+### Erro: "JAR não encontrado"
+```cmd
+compilar.bat
+```
+
+### Erro: "Porta 8080 já está em uso"
+Pare outros processos Java ou altere a porta no código.
+
+### Erro: "Conexão recusada"
+Certifique-se de que o servidor está rodando antes de iniciar o cliente.
+
+### Limpar e recompilar
+```cmd
+mvn clean package
+```
+
+## 📝 Notas Importantes
+
+- **Campos Formatados**: CPF e valores monetários são formatados automaticamente durante a digitação
+- **Login Automático**: Após criar conta, o login é feito automaticamente
+- **Validações**: Todos os campos têm validação em tempo real
+- **Banco de Dados**: SQLite (usuarios.db) é criado automaticamente
+
+## 🎨 Recursos da Interface
+
+- ✅ Formatação automática de CPF (000.000.000-00)
+- ✅ Formatação automática de valores monetários (R$ 0.000,00)
+- ✅ Fluxo intuitivo: Conexão → Autenticação → Operações
+- ✅ Login automático após criação de conta
+- ✅ Validação em tempo real de campos
+- ✅ Mensagens toast para feedback visual
+- ✅ Log detalhado de todas as operações
+
+## 📄 Licença
+
+Projeto acadêmico - Sistemas Distribuídos

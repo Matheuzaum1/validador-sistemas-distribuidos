@@ -1,25 +1,31 @@
 # Sistema Validador - Distribuído
 
-Um sistema bancário distribuído em Java para comunicação cliente-servidor com protocolo JSON personalizado, implementando operações CRUD de usuários, autenticação, transações financeiras e **diagnóstico avançado de conexões**.
+Sistema bancário distribuído em Java com comunicação cliente-servidor, operações CRUD, transações financeiras e interface gráfica moderna com formatação automática de campos.
 
-## 🔧 Diagnóstico de Conexão Avançado
+## � Início Rápido
 
-O sistema agora possui **diagnóstico detalhado de conexões** que informa:
-- **Onde está se conectando** (host, porta, IPs)
-- **Por que a conexão falhou** (análise específica do erro)
-- **Como resolver** (sugestões práticas)
-- **Teste de conectividade prévia** (validação antes da conexão)
+```cmd
+# Compilar e executar tudo de uma vez
+iniciar-sistema.bat
+```
 
-📋 **Consulte**: [docs/diagnostico-conexao.md](docs/diagnostico-conexao.md) para detalhes completos
+Ou veja [INICIO-RAPIDO.md](INICIO-RAPIDO.md) para mais opções.
+
+## ✨ Novidades da Interface
+
+- 🎯 **Fluxo Intuitivo**: Conexão → Autenticação → Operações
+- 💳 **CPF Formatado**: Digitação automática no formato 000.000.000-00
+- 💰 **Valores Monetários**: Formatação em R$ (0.000,00)
+- � **Login Automático**: Após criar conta, login é feito automaticamente
+- ✅ **Validação em Tempo Real**: Todos os campos validados durante digitação
 
 ## ⚙️ Requisitos
 
-### Requisitos do Sistema
-- **Java 21+** (configurado para Java 21)
-- **Maven 3.6+** para gerenciamento de dependências
-- **Sistema Operacional**: Windows, Linux ou macOS
-- **Memória RAM**: Mínimo 512MB disponível
-- **Rede**: Porta 20000 disponível para o servidor
+### Sistema
+- **Java 17+** (atualizado para Java 17)
+- **Maven 3.6+**
+- **Windows** (scripts .bat e .ps1)
+- **Porta 8080** disponível
 
 ### Requisitos Funcionais - Fase 1 (EP-1: 2 pts)
 - ✅ **Cadastro de usuário comum (C)** - Criar novo usuário no sistema

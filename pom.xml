@@ -79,29 +79,6 @@
             </plugin>
             
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.1</version>
-                <configuration>
-                    <mainClass>com.distribuidos.server.ServerMain</mainClass>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>server</id>
-                        <configuration>
-                            <mainClass>com.distribuidos.server.ServerMain</mainClass>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>client</id>
-                        <configuration>
-                            <mainClass>com.distribuidos.client.ClientMain</mainClass>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.5.1</version>
