@@ -8,5 +8,5 @@ if (-not (Test-Path $JAR_PATH)) {
     & "$PSScriptRoot\compilar.ps1"
 }
 Write-Host "Iniciando cliente para conectar em $serverHost`:$port..." -ForegroundColor Cyan
-& java "-Dserver.host=$serverHost" "-Dserver.port=$port" -jar $JAR_PATH
+& java "-Dserver.host=$serverHost" "-Dserver.port=$port" -cp $JAR_PATH "com.distribuidos.client.ClientMain"
 Pop-Location
