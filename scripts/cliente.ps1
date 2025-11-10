@@ -1,4 +1,4 @@
-param([string]$host = "localhost", [int]$port = 8080)
+param([string]$serverHost = "localhost", [int]$port = 8080)
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Push-Location $projectRoot
@@ -7,6 +7,6 @@ if (-not (Test-Path $JAR_PATH)) {
     Write-Host "JAR nao encontrado. Compilando..." -ForegroundColor Yellow
     & "$PSScriptRoot\compilar.ps1"
 }
-Write-Host "Iniciando cliente para conectar em $host`:$port..." -ForegroundColor Cyan
-java -Dserver.host=$host -Dserver.port=$port -jar $JAR_PATH
+Write-Host "Iniciando cliente para conectar em $serverHost`:$port..." -ForegroundColor Cyan
+java -Dserver.host=$serverHost -Dserver.port=$port -jar $JAR_PATH
 Pop-Location

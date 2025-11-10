@@ -19,7 +19,7 @@ Start-Sleep -Seconds 3
 Write-Host "Abrindo cliente em nova janela..." -ForegroundColor Cyan
 $clientScript = @"
 Write-Host "CLIENTE - Conectando a localhost`:$port" -ForegroundColor Green
-& '$PSScriptRoot\cliente.ps1' -host localhost -port $port
+& '$PSScriptRoot\cliente.ps1' -serverHost localhost -port $port
 "@
 Start-Process powershell -ArgumentList "-NoExit", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $clientScript
 Write-Host ""
