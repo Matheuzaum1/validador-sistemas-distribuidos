@@ -2,6 +2,7 @@ package com.distribuidos.client;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.regex.Pattern;
@@ -113,21 +114,30 @@ public class ClientGUI extends JFrame {
         addLogMessage("Host: " + host + " | Porta: " + port);
         
         new Thread(() -> {
-            boolean success = connection.connect(host, port);
-            
-            SwingUtilities.invokeLater(() -> {
-                if (success) {
-                    addLogMessage("✓ Conectado com sucesso!");
-                    ToastNotification.showSuccess("Conexão", "Conectado ao servidor com sucesso!");
-                    cardLayout.show(mainContainer, CARD_AUTH);
-                } else {
-                    addLogMessage("✗ Falha na conexão!");
+            try {
+                boolean success = connection.connect(host, port);
+                
+                SwingUtilities.invokeLater(() -> {
+                    if (success) {
+                        addLogMessage("✓ Conectado com sucesso!");
+                        ToastNotification.showSuccess("Conexão", "Conectado ao servidor com sucesso!");
+                        cardLayout.show(mainContainer, CARD_AUTH);
+                    } else {
+                        addLogMessage("✗ Falha na conexão!");
+                        JOptionPane.showMessageDialog(this,
+                            "Não foi possível conectar ao servidor.\\nVerifique se o servidor está rodando e tente novamente.",
+                            "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
+                        System.exit(0);
+                    }
+                });
+            } catch (IOException e) {
+                addLogMessage("✗ Erro de I/O: " + e.getMessage());
+                SwingUtilities.invokeLater(() -> 
                     JOptionPane.showMessageDialog(this,
-                        "Não foi possível conectar ao servidor.\\nVerifique se o servidor está rodando e tente novamente.",
-                        "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
-                    System.exit(0);
-                }
-            });
+                        "Erro de conexão: " + e.getMessage(),
+                        "Erro", JOptionPane.ERROR_MESSAGE)
+                );
+            }
         }).start();
     }
     

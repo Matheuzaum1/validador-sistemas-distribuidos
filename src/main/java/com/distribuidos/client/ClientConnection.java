@@ -1,6 +1,9 @@
 package com.distribuidos.client;
 
 import com.distribuidos.common.MessageBuilder;
+import com.distribuidos.common.MDCManager;
+import com.distribuidos.exception.ConnectionException;
+import com.distribuidos.handler.GlobalExceptionHandler;
 import validador.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,7 +70,12 @@ public class ClientConnection {
         }
     }
     
-    public boolean connect(String serverHost, int serverPort) {
+    /**
+     * Conecta ao servidor com retry automático e logging estruturado.
+     */
+    public boolean connect(String serverHost, int serverPort) throws IOException {
+        MDCManager.setUserId("cliente-" + serverHost);
+        
         try {
             logger.info("Iniciando conexão com servidor {}:{}", serverHost, serverPort);
             clientGUI.addLogMessage("=== INICIANDO CONEXÃO ===");
@@ -76,10 +84,10 @@ public class ClientConnection {
             clientGUI.addLogMessage("Timeout de conexão: 5 segundos");
             clientGUI.addLogMessage("Timeout de leitura: 10 segundos");
             
-            // Criar socket com timeout de conexão
+            // Conectar ao servidor
             socket = new Socket();
-            socket.connect(new InetSocketAddress(serverHost, serverPort), 5000); // 5 segundos timeout
-            socket.setSoTimeout(10000); // 10 segundos timeout para operações de leitura
+            socket.connect(new InetSocketAddress(serverHost, serverPort), 5000);
+            socket.setSoTimeout(10000);
             
             in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
@@ -115,66 +123,68 @@ public class ClientConnection {
                 logger.error("Erro no protocolo de conexão", e);
                 clientGUI.addLogMessage("✗ Erro no protocolo de conexão: " + e.getMessage());
                 clientGUI.addLogMessage("=== CONEXÃO FALHOU ===");
+                GlobalExceptionHandler.logDetailedError("protocolo de conexão", e);
                 disconnect();
                 return false;
             }
             
+        } catch (ConnectionException e) {
+            logger.error("Falha na conexão (ConnectionException): {}:{} - {}", e.getHost(), e.getPort(), e.getMessage());
+            clientGUI.addLogMessage("=== DIAGNÓSTICO DE CONEXÃO ===");
+            clientGUI.addLogMessage("✗ Falha após " + e.getRetryCount() + " tentativas");
+            clientGUI.addLogMessage(e.getMessage());
+            GlobalExceptionHandler.handleException(e, "conexão ao servidor");
+            disconnect();
+            return false;
+            
         } catch (IOException e) {
-            logger.error("Erro ao conectar ao servidor {}:{}", serverHost, serverPort, e);
+            logger.error("Erro ao conectar ao servidor {}:{} - {}", serverHost, serverPort, e.getMessage());
+            GlobalExceptionHandler.logDetailedError("conexão IoException", e);
             clientGUI.addLogMessage("=== DIAGNÓSTICO DE CONEXÃO ===");
             
             String errorMsg = "✗ Falha na conexão: ";
-            String diagnostico = "";
-            String solucao = "";
             
             if (e instanceof ConnectException) {
                 errorMsg += "Conexão recusada";
-                diagnostico = "• O servidor não está rodando na porta " + serverPort + 
-                            "\n• Firewall bloqueando a conexão" +
-                            "\n• Porta ocupada por outro processo";
-                solucao = "• Verifique se o servidor está rodando\n• Teste com telnet " + serverHost + " " + serverPort;
+                clientGUI.addLogMessage(errorMsg);
+                clientGUI.addLogMessage("• O servidor não está rodando na porta " + serverPort);
+                clientGUI.addLogMessage("• Firewall bloqueando a conexão");
+                clientGUI.addLogMessage("Verifique se o servidor está rodando");
                 
             } else if (e instanceof SocketTimeoutException) {
                 errorMsg += "Timeout de conexão";
-                diagnostico = "• Servidor demorou mais de 5 segundos para responder" +
-                            "\n• Problemas de rede ou latência alta" +
-                            "\n• Servidor sobrecarregado";
-                solucao = "• Verifique a conexão de rede\n• Tente novamente em alguns segundos";
+                clientGUI.addLogMessage(errorMsg);
+                clientGUI.addLogMessage("• Servidor demorou mais de 5 segundos");
+                clientGUI.addLogMessage("• Problemas de rede ou latência alta");
+                clientGUI.addLogMessage("Tente novamente em alguns segundos");
                 
             } else if (e instanceof UnknownHostException) {
                 errorMsg += "Host não encontrado";
-                diagnostico = "• Endereço IP/hostname incorreto: " + serverHost +
-                            "\n• Problemas de DNS" +
-                            "\n• Host não existe na rede";
-                solucao = "• Verifique o endereço do servidor\n• Teste ping " + serverHost;
+                clientGUI.addLogMessage(errorMsg);
+                clientGUI.addLogMessage("• Endereço incorreto: " + serverHost);
+                clientGUI.addLogMessage("• Verifique o endereço do servidor");
                 
             } else if (e instanceof NoRouteToHostException) {
                 errorMsg += "Rota não encontrada";
-                diagnostico = "• Não há rota de rede para " + serverHost +
-                            "\n• Problemas de roteamento" +
-                            "\n• Host em rede inacessível";
-                solucao = "• Verifique conectividade de rede\n• Contate administrador de rede";
+                clientGUI.addLogMessage(errorMsg);
+                clientGUI.addLogMessage("• Não há rota de rede para " + serverHost);
+                clientGUI.addLogMessage("• Verifique conectividade de rede");
                 
             } else if (e instanceof PortUnreachableException) {
                 errorMsg += "Porta inacessível";
-                diagnostico = "• Porta " + serverPort + " não está acessível" +
-                            "\n• Servidor não está escutando nesta porta" +
-                            "\n• Bloqueio de firewall";
-                solucao = "• Confirme a porta correta do servidor\n• Verifique configurações de firewall";
+                clientGUI.addLogMessage(errorMsg);
+                clientGUI.addLogMessage("• Porta " + serverPort + " não está acessível");
+                clientGUI.addLogMessage("• Verifique configurações de firewall");
                 
             } else {
                 errorMsg += e.getClass().getSimpleName() + ": " + e.getMessage();
-                diagnostico = "• Erro inesperado de rede";
-                solucao = "• Tente novamente\n• Verifique configurações de rede";
+                clientGUI.addLogMessage(errorMsg);
+                clientGUI.addLogMessage("• Erro inesperado de rede");
+                clientGUI.addLogMessage("• Tente novamente");
             }
             
-            clientGUI.addLogMessage(errorMsg);
-            clientGUI.addLogMessage("Diagnóstico possível:");
-            clientGUI.addLogMessage(diagnostico);
-            clientGUI.addLogMessage("Sugestões:");
-            clientGUI.addLogMessage(solucao);
             clientGUI.addLogMessage("=== CONEXÃO FALHOU ===");
-            
+            disconnect();
             return false;
         }
     }
