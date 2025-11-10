@@ -4,6 +4,7 @@ import java.util.regex.Pattern;
 
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
+import javax.swing.text.JTextComponent;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
@@ -19,34 +20,36 @@ public class ValidationHelper {
     private static final Pattern VALOR_PATTERN = Pattern.compile("^\\d+(\\.\\d{1,2})?$");
     
     /**
-     * Validador de CPF com feedback visual
+     * Classe base abstrata para validadores com feedback visual
      */
-    public static class CPFValidator implements DocumentListener {
-        private final JTextField field;
-        private final Runnable onValidChange;
+    private abstract static class BaseValidator implements DocumentListener {
+        protected final JTextComponent field;
+        protected final Runnable onValidChange;
         
-        public CPFValidator(JTextField field) {
-            this(field, null);
-        }
-        
-        public CPFValidator(JTextField field, Runnable onValidChange) {
+        protected BaseValidator(JTextComponent field, Runnable onValidChange) {
             this.field = field;
             this.onValidChange = onValidChange;
         }
         
         @Override
-        public void insertUpdate(DocumentEvent e) { validate(); }
+        public final void insertUpdate(DocumentEvent e) { validate(); }
         
         @Override
-        public void removeUpdate(DocumentEvent e) { validate(); }
+        public final void removeUpdate(DocumentEvent e) { validate(); }
         
         @Override
-        public void changedUpdate(DocumentEvent e) { validate(); }
+        public final void changedUpdate(DocumentEvent e) { validate(); }
         
-        private void validate() {
-            String text = field.getText().trim();
-            boolean isValid = text.isEmpty() || CPF_PATTERN.matcher(text).matches();
-            
+        protected final void validate() {
+            String text = getText();
+            boolean isValid = text.isEmpty() || isFieldValid(text);
+            applyFeedback(text, isValid);
+        }
+        
+        protected abstract String getText();
+        protected abstract boolean isFieldValid(String text);
+        
+        protected void applyFeedback(String text, boolean isValid) {
             if (text.isEmpty()) {
                 field.setForeground(UIColors.TEXT_PRIMARY);
                 field.setBackground(UIColors.FIELD_BACKGROUND);
@@ -60,98 +63,81 @@ public class ValidationHelper {
                 field.setForeground(UIColors.ERROR);
                 field.setBackground(UIColors.lighter(UIColors.ERROR, 30));
             }
+        }
+    }
+    
+    /**
+     * Validador de CPF com feedback visual
+     */
+    public static class CPFValidator extends BaseValidator {
+        public CPFValidator(JTextField field) {
+            this(field, null);
+        }
+        
+        public CPFValidator(JTextField field, Runnable onValidChange) {
+            super(field, onValidChange);
+        }
+        
+        @Override
+        protected String getText() {
+            return ((JTextField) field).getText().trim();
+        }
+        
+        @Override
+        protected boolean isFieldValid(String text) {
+            return CPF_PATTERN.matcher(text).matches();
         }
     }
     
     /**
      * Validador de Nome/Texto com feedback visual
      */
-    public static class TextValidator implements DocumentListener {
-        private final JTextField field;
+    public static class TextValidator extends BaseValidator {
         private final int minLength;
-        private final Runnable onValidChange;
         
         public TextValidator(JTextField field, int minLength) {
             this(field, minLength, null);
         }
         
         public TextValidator(JTextField field, int minLength, Runnable onValidChange) {
-            this.field = field;
+            super(field, onValidChange);
             this.minLength = minLength;
-            this.onValidChange = onValidChange;
         }
         
         @Override
-        public void insertUpdate(DocumentEvent e) { validate(); }
+        protected String getText() {
+            return ((JTextField) field).getText().trim();
+        }
         
         @Override
-        public void removeUpdate(DocumentEvent e) { validate(); }
-        
-        @Override
-        public void changedUpdate(DocumentEvent e) { validate(); }
-        
-        private void validate() {
-            String text = field.getText().trim();
-            boolean isValid = text.isEmpty() || text.length() >= minLength;
-            
-            if (text.isEmpty()) {
-                field.setForeground(UIColors.TEXT_PRIMARY);
-                field.setBackground(UIColors.FIELD_BACKGROUND);
-            } else if (isValid) {
-                field.setForeground(UIColors.SUCCESS);
-                field.setBackground(UIColors.lighter(UIColors.SUCCESS, 30));
-                if (onValidChange != null) {
-                    onValidChange.run();
-                }
-            } else {
-                field.setForeground(UIColors.ERROR);
-                field.setBackground(UIColors.lighter(UIColors.ERROR, 30));
-            }
+        protected boolean isFieldValid(String text) {
+            return text.length() >= minLength;
         }
     }
     
     /**
      * Validador de Valor monetário com feedback visual
      */
-    public static class ValueValidator implements DocumentListener {
-        private final JTextField field;
-        private final Runnable onValidChange;
-        
+    public static class ValueValidator extends BaseValidator {
         public ValueValidator(JTextField field) {
             this(field, null);
         }
         
         public ValueValidator(JTextField field, Runnable onValidChange) {
-            this.field = field;
-            this.onValidChange = onValidChange;
+            super(field, onValidChange);
         }
         
         @Override
-        public void insertUpdate(DocumentEvent e) { validate(); }
+        protected String getText() {
+            return ((JTextField) field).getText().trim().replace(",", ".");
+        }
         
         @Override
-        public void removeUpdate(DocumentEvent e) { validate(); }
-        
-        @Override
-        public void changedUpdate(DocumentEvent e) { validate(); }
-        
-        private void validate() {
-            String text = field.getText().trim().replace(",", ".");
-            boolean isValid = text.isEmpty() || (VALOR_PATTERN.matcher(text).matches() && 
-                                                  Double.parseDouble(text) > 0);
-            
-            if (text.isEmpty()) {
-                field.setForeground(UIColors.TEXT_PRIMARY);
-                field.setBackground(UIColors.FIELD_BACKGROUND);
-            } else if (isValid) {
-                field.setForeground(UIColors.SUCCESS);
-                field.setBackground(UIColors.lighter(UIColors.SUCCESS, 30));
-                if (onValidChange != null) {
-                    onValidChange.run();
-                }
-            } else {
-                field.setForeground(UIColors.ERROR);
-                field.setBackground(UIColors.lighter(UIColors.ERROR, 30));
+        protected boolean isFieldValid(String text) {
+            try {
+                return VALOR_PATTERN.matcher(text).matches() && Double.parseDouble(text) > 0;
+            } catch (NumberFormatException e) {
+                return false;
             }
         }
     }
@@ -159,47 +145,26 @@ public class ValidationHelper {
     /**
      * Validador de Senha com feedback visual
      */
-    public static class PasswordValidator implements DocumentListener {
-        private final JPasswordField field;
+    public static class PasswordValidator extends BaseValidator {
         private final int minLength;
-        private final Runnable onValidChange;
         
         public PasswordValidator(JPasswordField field, int minLength) {
             this(field, minLength, null);
         }
         
         public PasswordValidator(JPasswordField field, int minLength, Runnable onValidChange) {
-            this.field = field;
+            super(field, onValidChange);
             this.minLength = minLength;
-            this.onValidChange = onValidChange;
         }
         
         @Override
-        public void insertUpdate(DocumentEvent e) { validate(); }
+        protected String getText() {
+            return new String(((JPasswordField) field).getPassword()).trim();
+        }
         
         @Override
-        public void removeUpdate(DocumentEvent e) { validate(); }
-        
-        @Override
-        public void changedUpdate(DocumentEvent e) { validate(); }
-        
-        private void validate() {
-            String password = new String(field.getPassword());
-            boolean isValid = password.isEmpty() || password.length() >= minLength;
-            
-            if (password.isEmpty()) {
-                field.setForeground(UIColors.TEXT_PRIMARY);
-                field.setBackground(UIColors.FIELD_BACKGROUND);
-            } else if (isValid) {
-                field.setForeground(UIColors.SUCCESS);
-                field.setBackground(UIColors.lighter(UIColors.SUCCESS, 30));
-                if (onValidChange != null) {
-                    onValidChange.run();
-                }
-            } else {
-                field.setForeground(UIColors.ERROR);
-                field.setBackground(UIColors.lighter(UIColors.ERROR, 30));
-            }
+        protected boolean isFieldValid(String text) {
+            return text.length() >= minLength;
         }
     }
     

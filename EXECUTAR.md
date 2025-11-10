@@ -1,51 +1,33 @@
-# Sistema Distribuído - Validador
+# 🚀 Como Executar o Sistema
 
 Sistema cliente-servidor distribuído com operações CRUD de usuários e transações bancárias.
 
-## 🚀 Como Executar
+## Opção 1: Sistema Completo (Recomendado) ⭐
 
-### Opção 1: Scripts Simples (.bat para Windows)
+Inicia servidor e cliente automaticamente em janelas separadas:
 
-1. **Compilar o projeto:**
-   ```cmd
-   compilar.bat
-   ```
-
-2. **Iniciar o servidor (em um terminal):**
-   ```cmd
-   iniciar-servidor.bat
-   ```
-
-3. **Iniciar o cliente (em outro terminal):**
-   ```cmd
-   iniciar-cliente.bat
-   ```
-
-### Opção 2: Scripts PowerShell (.ps1)
-
-1. **Compilar o projeto:**
-   ```powershell
-   .\compilar.ps1
-   ```
-
-2. **Iniciar o servidor:**
-   ```powershell
-   .\iniciar-servidor.ps1
-   ```
-
-3. **Iniciar o cliente:**
-   ```powershell
-   .\iniciar-cliente.ps1
-   ```
-
-### Opção 3: Menu Interativo
-
-Execute o script de gerenciamento completo:
-```cmd
-scripts\sistema.bat
+```powershell
+.\scripts\sistema.ps1
 ```
 
-### Opção 4: Comandos Maven Diretos
+## Opção 2: Execução Manual
+
+### 1️⃣ Compilar o Projeto
+```powershell
+.\scripts\compilar.ps1
+```
+
+### 2️⃣ Iniciar o Servidor (em um terminal)
+```powershell
+.\scripts\servidor.ps1
+```
+
+### 3️⃣ Iniciar o Cliente (em outro terminal)
+```powershell
+.\scripts\cliente.ps1
+```
+
+## Opção 3: Comandos Maven Diretos
 
 ```bash
 # Compilar
