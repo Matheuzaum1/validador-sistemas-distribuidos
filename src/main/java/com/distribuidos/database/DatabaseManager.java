@@ -175,7 +175,8 @@ public class DatabaseManager {
 
     // Transaction-related methods
     public boolean createDeposit(String cpfDestino, double valor) {
-        return performAtomicTransfer(null, cpfDestino, valor);
+        // Para depósitos, tanto enviador quanto recebedor são o mesmo usuário (protocolo 4.9)
+        return performAtomicTransfer(cpfDestino, cpfDestino, valor);
     }
 
     public boolean createTransfer(String cpfOrigem, String cpfDestino, double valor) {
@@ -190,9 +191,12 @@ public class DatabaseManager {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             conn.setAutoCommit(false);
 
-            // If origem provided, check balance
+            boolean isDeposit = cpfOrigem != null && cpfOrigem.equals(cpfDestino);
+
+            // Para transferências normais, verificar saldo da origem
+            // Para depósitos, apenas adicionar ao saldo (origem = destino)
             double origemSaldo = 0.0;
-            if (cpfOrigem != null) {
+            if (cpfOrigem != null && !isDeposit) {
                 try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                     ps.setString(1, cpfOrigem);
                     ResultSet rs = ps.executeQuery();
@@ -208,32 +212,53 @@ public class DatabaseManager {
                 }
             }
 
-            // Deduct origem
-            if (cpfOrigem != null) {
-                double newOrigem = origemSaldo - valor;
-                try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
-                    ps.setDouble(1, newOrigem);
-                    ps.setString(2, java.time.LocalDateTime.now().toString());
-                    ps.setString(3, cpfOrigem);
-                    ps.executeUpdate();
+            if (isDeposit) {
+                // Para depósitos: apenas adicionar o valor ao saldo do usuário
+                try (PreparedStatement psSelect = conn.prepareStatement(selectSql)) {
+                    psSelect.setString(1, cpfDestino);
+                    ResultSet rs = psSelect.executeQuery();
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return false;
+                    }
+                    double currentSaldo = rs.getDouble("saldo");
+                    double newSaldo = currentSaldo + valor;
+                    try (PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
+                        psUpdate.setDouble(1, newSaldo);
+                        psUpdate.setString(2, java.time.LocalDateTime.now().toString());
+                        psUpdate.setString(3, cpfDestino);
+                        psUpdate.executeUpdate();
+                    }
                 }
-            }
+            } else {
+                // Para transferências: debitar origem e creditar destino
+                // Deduct origem
+                if (cpfOrigem != null) {
+                    double newOrigem = origemSaldo - valor;
+                    try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                        ps.setDouble(1, newOrigem);
+                        ps.setString(2, java.time.LocalDateTime.now().toString());
+                        ps.setString(3, cpfOrigem);
+                        ps.executeUpdate();
+                    }
+                }
 
-            // Credit destino
-            try (PreparedStatement psSelect = conn.prepareStatement(selectSql)) {
-                psSelect.setString(1, cpfDestino);
-                ResultSet rs = psSelect.executeQuery();
-                if (!rs.next()) {
-                    conn.rollback();
-                    return false;
-                }
-                double destinoSaldo = rs.getDouble("saldo");
-                double newDestino = destinoSaldo + valor;
-                try (PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
-                    psUpdate.setDouble(1, newDestino);
-                    psUpdate.setString(2, java.time.LocalDateTime.now().toString());
-                    psUpdate.setString(3, cpfDestino);
-                    psUpdate.executeUpdate();
+                // Credit destino
+                try (PreparedStatement psSelect = conn.prepareStatement(selectSql)) {
+                    psSelect.setString(1, cpfDestino);
+                    ResultSet rs = psSelect.executeQuery();
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return false;
+                    }
+                    double destinoSaldo = rs.getDouble("saldo");
+                    double newDestino = destinoSaldo + valor;
+                    try (PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
+                        psUpdate.setDouble(1, newDestino);
+                        psUpdate.setString(2, java.time.LocalDateTime.now().toString());
+                        psUpdate.setString(3, cpfDestino);
+                        psUpdate.executeUpdate();
+                    }
                 }
             }
 
