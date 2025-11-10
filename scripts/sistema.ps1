@@ -1,8 +1,9 @@
 param([int]$port = 8080, [switch]$rebuild = $false)
 $ErrorActionPreference = "Stop"
+$projectRoot = Split-Path -Parent $PSScriptRoot
 $JAR_PATH = "target\validador-sistemas-distribuidos-1.0.0.jar"
 Write-Host "Iniciando SISTEMA DISTRIBUIDO..." -ForegroundColor Cyan
-if ($rebuild -or -not (Test-Path $JAR_PATH)) {
+if ($rebuild -or -not (Test-Path "$projectRoot\$JAR_PATH")) {
     Write-Host "Compilando projeto..." -ForegroundColor Yellow
     & "$PSScriptRoot\compilar.ps1"
 }

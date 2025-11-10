@@ -1,5 +1,7 @@
 param([switch]$completa = $false, [switch]$rebuild = $false)
 $ErrorActionPreference = "Stop"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+Push-Location $projectRoot
 Write-Host "Limpando projeto..." -ForegroundColor Cyan
 if ($completa) {
     Write-Host "Limpeza COMPLETA..." -ForegroundColor Yellow
@@ -18,3 +20,4 @@ if ($rebuild) {
 }
 Write-Host ""
 Write-Host "Operacao concluida!" -ForegroundColor Green
+Pop-Location
