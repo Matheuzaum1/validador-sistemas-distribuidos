@@ -1,4 +1,4 @@
-param([int]$port = 8080)
+param([int]$port = 20000)
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Push-Location $projectRoot
@@ -8,5 +8,5 @@ if (-not (Test-Path $JAR_PATH)) {
     & "$PSScriptRoot\compilar.ps1"
 }
 Write-Host "Iniciando servidor na porta $port..." -ForegroundColor Cyan
-java -Dserver.port=$port -jar $JAR_PATH
+& java "-Dserver.port=$port" -jar $JAR_PATH
 Pop-Location

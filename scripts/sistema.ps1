@@ -1,4 +1,4 @@
-param([int]$port = 8080, [switch]$rebuild = $false)
+param([int]$port = 20000, [switch]$rebuild = $false)
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $JAR_PATH = "target\validador-sistemas-distribuidos-1.0.0.jar"
