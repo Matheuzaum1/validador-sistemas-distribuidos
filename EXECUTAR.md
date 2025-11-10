@@ -2,7 +2,25 @@
 
 Sistema cliente-servidor distribuído com operações CRUD de usuários e transações bancárias.
 
-## Opção 1: Sistema Completo (Recomendado) ⭐
+## ⭐ Opção 1: Menu Interativo (Recomendado para Iniciantes)
+
+Abre um menu com todas as opções disponíveis:
+
+```powershell
+.\scripts\menu.ps1
+```
+
+**Oferece opções para:**
+- 🚀 Executar sistema completo
+- 🖥️ Iniciar servidor
+- 💻 Iniciar cliente
+- 🔨 Compilar projeto
+- 🗑️ Limpar e recompilar
+- 📖 Ver instruções de uso
+
+---
+
+## ⭐ Opção 2: Sistema Completo (Recomendado)
 
 Inicia servidor e cliente automaticamente em janelas separadas:
 
@@ -10,11 +28,25 @@ Inicia servidor e cliente automaticamente em janelas separadas:
 .\scripts\sistema.ps1
 ```
 
-## Opção 2: Execução Manual
+**Argumentos opcionais:**
+```powershell
+.\scripts\sistema.ps1 -port 9000          # Usa porta diferente
+.\scripts\sistema.ps1 -rebuild             # Recompila antes de iniciar
+```
+
+---
+
+## Opção 3: Execução Manual
 
 ### 1️⃣ Compilar o Projeto
 ```powershell
 .\scripts\compilar.ps1
+```
+
+**Argumentos opcionais:**
+```powershell
+.\scripts\compilar.ps1 -test               # Executa testes também
+.\scripts\compilar.ps1 -clean:$false       # Não faz limpeza
 ```
 
 ### 2️⃣ Iniciar o Servidor (em um terminal)
@@ -22,22 +54,36 @@ Inicia servidor e cliente automaticamente em janelas separadas:
 .\scripts\servidor.ps1
 ```
 
+**Argumentos opcionais:**
+```powershell
+.\scripts\servidor.ps1 -port 9000          # Usa porta 9000
+.\scripts\servidor.ps1 -background         # Inicia em background
+```
+
 ### 3️⃣ Iniciar o Cliente (em outro terminal)
 ```powershell
 .\scripts\cliente.ps1
 ```
 
-## Opção 3: Comandos Maven Diretos
+**Argumentos opcionais:**
+```powershell
+.\scripts\cliente.ps1 -host 192.168.1.100  # Conecta em outro host
+.\scripts\cliente.ps1 -port 9000            # Conecta em porta diferente
+```
 
-```bash
-# Compilar
-mvn clean package -DskipTests
+---
 
-# Iniciar servidor
-java -cp target/validador-sistemas-distribuidos-1.0.0.jar com.distribuidos.server.ServerMain
+## 🛠️ Utilitários
 
-# Iniciar cliente
-java -cp target/validador-sistemas-distribuidos-1.0.0.jar com.distribuidos.client.ClientMain
+### Limpeza de Build
+```powershell
+.\scripts\limpeza.ps1
+```
+
+**Argumentos opcionais:**
+```powershell
+.\scripts\limpeza.ps1 -completa             # Remove database e logs também
+.\scripts\limpeza.ps1 -completa -rebuild    # Limpeza total + recompila
 ```
 
 ## 📋 Pré-requisitos

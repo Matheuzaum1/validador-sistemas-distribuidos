@@ -1,36 +1,117 @@
-# Script para compilar o projeto
-Write-Host ""
-Write-Host "===============================================" -ForegroundColor Cyan
-Write-Host "  Sistema Distribuido - COMPILACAO" -ForegroundColor Cyan
-Write-Host "===============================================" -ForegroundColor Cyan
-Write-Host ""
+# ============================================================================
+# Script: compilar.ps1
+# Descrição: Compila o projeto Maven e gera o JAR executável
+# Uso: .\scripts\compilar.ps1 [-clean] [-test]
+# ============================================================================
 
-Write-Host "Limpando builds anteriores..." -ForegroundColor Yellow
-& mvn clean
+param(
+    [switch]$clean = $true,
+    [switch]$test = $false
+)
 
-Write-Host ""
-Write-Host "Compilando projeto..." -ForegroundColor Yellow
-& mvn package -DskipTests
+$ErrorActionPreference = "Stop"
+$JAR_PATH = "target\validador-sistemas-distribuidos-1.0.0.jar"
 
-if ($LASTEXITCODE -ne 0) {
+# ============================================================================
+# FUNÇÕES
+# ============================================================================
+
+function Show-Banner {
     Write-Host ""
-    Write-Host "[ERRO] Falha na compilacao!" -ForegroundColor Red
-    Write-Host ""
-    Read-Host "Pressione Enter para sair"
-    exit 1
-} else {
-    Write-Host ""
-    Write-Host "===============================================" -ForegroundColor Green
-    Write-Host "[OK] Compilacao concluida com sucesso!" -ForegroundColor Green
-    Write-Host "===============================================" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Arquivo gerado:" -ForegroundColor Cyan
-    Write-Host "  target\validador-sistemas-distribuidos-1.0.0.jar" -ForegroundColor White
-    Write-Host ""
-    Write-Host "Para executar:" -ForegroundColor Cyan
-    Write-Host "  - Servidor: .\iniciar-servidor.ps1" -ForegroundColor White
-    Write-Host "  - Cliente:  .\iniciar-cliente.ps1" -ForegroundColor White
+    Write-Host "===============================================" -ForegroundColor Cyan
+    Write-Host "  Sistema Distribuido - COMPILACAO" -ForegroundColor Cyan
+    Write-Host "===============================================" -ForegroundColor Cyan
     Write-Host ""
 }
 
-Read-Host "Pressione Enter para sair"
+function Show-Error {
+    param([string]$message)
+    Write-Host ""
+    Write-Host "[✗] ERRO: $message" -ForegroundColor Red
+    Write-Host ""
+}
+
+function Show-Success {
+    param([string]$message)
+    Write-Host "[✓] $message" -ForegroundColor Green
+}
+
+function Show-Info {
+    param([string]$message)
+    Write-Host "[*] $message" -ForegroundColor Cyan
+}
+
+function Verify-MavenInstalled {
+    try {
+        $null = mvn --version 2>&1
+        Show-Success "Maven encontrado"
+    }
+    catch {
+        Show-Error "Maven não está instalado ou não está no PATH"
+        exit 1
+    }
+}
+
+# ============================================================================
+# EXECUÇÃO
+# ============================================================================
+
+Show-Banner
+
+# Verificar Maven
+Show-Info "Verificando pré-requisitos..."
+Verify-MavenInstalled
+
+# Limpar build anterior
+if ($clean) {
+    Write-Host ""
+    Show-Info "Limpando builds anteriores..."
+    & mvn clean -q
+    if ($LASTEXITCODE -ne 0) {
+        Show-Error "Falha ao limpar projeto"
+        exit 1
+    }
+    Show-Success "Limpeza concluída"
+}
+
+# Compilar
+Write-Host ""
+Show-Info "Compilando projeto..."
+$buildArgs = @("package", "-DskipTests")
+if (-not $test) {
+    $buildArgs += "-DskipTests"
+}
+
+& mvn $buildArgs
+if ($LASTEXITCODE -ne 0) {
+    Show-Error "Falha na compilação"
+    Write-Host ""
+    Read-Host "Pressione Enter para sair"
+    exit 1
+}
+
+# Verificar JAR
+if (Test-Path $JAR_PATH) {
+    $jarSize = (Get-Item $JAR_PATH).Length / 1MB
+    Write-Host ""
+    Write-Host "===============================================" -ForegroundColor Green
+    Show-Success "Compilação concluída com sucesso!"
+    Write-Host "===============================================" -ForegroundColor Green
+    Write-Host ""
+    Show-Info "Arquivo gerado:"
+    Write-Host "  📦 $JAR_PATH" -ForegroundColor White
+    Write-Host "  📊 Tamanho: $([Math]::Round($jarSize, 2)) MB" -ForegroundColor White
+    Write-Host ""
+    Show-Info "Próximos passos:"
+    Write-Host "  • Servidor: .\scripts\servidor.ps1" -ForegroundColor White
+    Write-Host "  • Cliente:  .\scripts\cliente.ps1" -ForegroundColor White
+    Write-Host "  • Sistema:  .\scripts\sistema.ps1" -ForegroundColor White
+    Write-Host ""
+} else {
+    Show-Error "JAR não foi gerado"
+    exit 1
+}
+
+if (-not $test) {
+    Read-Host "Pressione Enter para sair"
+}
