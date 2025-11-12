@@ -130,8 +130,8 @@ public class MessageBuilder {
         if (transacoes != null) {
             for (com.distribuidos.common.Transacao t : transacoes) {
                 Map<String, Object> item = new HashMap<>();
-                // Remove ID da resposta conforme feedback
-                // item.put("id", t.getId());
+                // ID é obrigatório conforme protocolo seção 4.11
+                item.put("id", t.getId());
                 item.put("valor_enviado", t.getValor());
 
                 Map<String, Object> enviador = new HashMap<>();

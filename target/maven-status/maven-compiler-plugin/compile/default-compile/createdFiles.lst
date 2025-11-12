@@ -3,7 +3,6 @@ com\distribuidos\common\MDCManager.class
 com\distribuidos\server\ServerGUI$1.class
 com\distribuidos\server\ServerHandler.class
 com\distribuidos\exception\ErrorCode.class
-com\distribuidos\database\ExemplosUsoPix.class
 com\distribuidos\common\ValidationHelper$PasswordValidator.class
 com\distribuidos\common\ValidationHelper$CPFValidator.class
 com\distribuidos\server\ServerGUI$5.class
@@ -30,8 +29,6 @@ com\distribuidos\exception\ValidationException.class
 com\distribuidos\tools\ServerErrorInjector$ErrorType.class
 validador\Validator$1.class
 com\distribuidos\common\Usuario.class
-com\distribuidos\database\ExemplosUsoPix$CasoDeUsoRegistroChavesPix.class
-com\distribuidos\database\ExemplosUsoPix$CasoDeUsoTransferenciaPix.class
 com\distribuidos\server\ServerGUI$3.class
 validador\Validator.class
 com\distribuidos\common\ValidationHelper$TextValidator.class
