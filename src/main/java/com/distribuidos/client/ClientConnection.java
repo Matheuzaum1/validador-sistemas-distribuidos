@@ -439,6 +439,11 @@ public class ClientConnection {
         return sendMessage(message);
     }
     
+    public String readTransactions(String token, String dataInicial, String dataFinal) {
+        String message = MessageBuilder.buildReadTransactionsMessage(token, dataInicial, dataFinal);
+        return sendMessage(message);
+    }
+    
     public String connectToServer() {
         String message = MessageBuilder.buildConnectMessage();
         return sendMessage(message);

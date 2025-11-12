@@ -26,6 +26,8 @@ public class ClientGUI extends JFrame {
     private boolean isLoggedIn = false;
     private final ObjectMapper mapper = new ObjectMapper();
     private JTextArea logArea;
+    private String currentServerHost = "";
+    private int currentServerPort = 0;
     
     public ClientGUI() {
         connection = new ClientConnection(this);
@@ -119,8 +121,11 @@ public class ClientGUI extends JFrame {
                 
                 SwingUtilities.invokeLater(() -> {
                     if (success) {
+                        currentServerHost = host;
+                        currentServerPort = port;
                         addLogMessage("✓ Conectado com sucesso!");
                         ToastNotification.showSuccess("Conexão", "Conectado ao servidor com sucesso!");
+                        updateServerInfo();
                         cardLayout.show(mainContainer, CARD_AUTH);
                     } else {
                         addLogMessage("✗ Falha na conexão!");
@@ -348,9 +353,18 @@ public class ClientGUI extends JFrame {
         userInfoLabel.setName("userInfoLabel");
         topPanel.add(userInfoLabel, BorderLayout.WEST);
         
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        
+        JButton connectButton = new JButton("Conectar em Outro Servidor");
+        connectButton.addActionListener(e -> performConnectToAnotherServer());
+        connectButton.setToolTipText("Conectar a um servidor diferente");
+        buttonsPanel.add(connectButton);
+        
         JButton logoutButton = new JButton("Sair");
         logoutButton.addActionListener(e -> performLogout());
-        topPanel.add(logoutButton, BorderLayout.EAST);
+        buttonsPanel.add(logoutButton);
+        
+        topPanel.add(buttonsPanel, BorderLayout.EAST);
         
         panel.add(topPanel, BorderLayout.NORTH);
         
@@ -458,6 +472,10 @@ public class ClientGUI extends JFrame {
             performDeposit(valField);
         });
         buttonsPanel.add(depositButton);
+        
+        JButton extratoButton = new JButton("Ver Extrato");
+        extratoButton.addActionListener(e -> performViewExtrato());
+        buttonsPanel.add(extratoButton);
         
         panel.add(buttonsPanel, BorderLayout.CENTER);
         return panel;
@@ -611,6 +629,46 @@ public class ClientGUI extends JFrame {
         cardLayout.show(mainContainer, CARD_AUTH);
     }
     
+    private void performConnectToAnotherServer() {
+        int confirm = JOptionPane.showConfirmDialog(this,
+            "Deseja conectar em outro servidor?\n" +
+            "Você será desconectado do servidor atual e perderá a sessão ativa.",
+            "Conectar em Outro Servidor", 
+            JOptionPane.YES_NO_OPTION, 
+            JOptionPane.QUESTION_MESSAGE);
+        
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+        
+        // Fazer logout se estiver logado
+        if (isLoggedIn && currentToken != null) {
+            try {
+                connection.logout(currentToken);
+                addLogMessage("✓ Logout automático realizado antes da troca de servidor");
+            } catch (Exception e) {
+                addLogMessage("⚠ Erro no logout automático: " + e.getMessage());
+            }
+        }
+        
+        // Desconectar do servidor atual
+        if (connection.isConnected()) {
+            connection.disconnect();
+            addLogMessage("✓ Desconectado do servidor anterior");
+        }
+        
+        // Resetar estado do cliente
+        isLoggedIn = false;
+        currentToken = null;
+        currentUserCpf = null;
+        
+        // Mostrar tela de autenticação
+        cardLayout.show(mainContainer, CARD_AUTH);
+        
+        // Mostrar dialog de conexão para novo servidor
+        SwingUtilities.invokeLater(this::showConnectionDialog);
+    }
+    
     private void performTransfer(JTextField cpfDestinoField, JTextField valorField) {
         if (!isLoggedIn) {
             ToastNotification.showWarning("Aviso", "Você precisa estar logado");
@@ -688,11 +746,236 @@ public class ClientGUI extends JFrame {
         return cpf != null && CPF_PATTERN.matcher(cpf).matches();
     }
     
+    private void performViewExtrato() {
+        if (!isLoggedIn) {
+            ToastNotification.showWarning("Aviso", "Você precisa estar logado");
+            return;
+        }
+        
+        showExtratoDialog();
+    }
+    
+    private void showExtratoDialog() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(new JLabel("Período do Extrato:"), gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 1;
+        panel.add(new JLabel("Data Inicial:"), gbc);
+        gbc.gridx = 1;
+        JTextField dataInicialField = new JTextField("2025-01-01T00:00:00Z", 20);
+        dataInicialField.setToolTipText("Formato: yyyy-MM-ddTHH:mm:ssZ (máximo 31 dias)");
+        panel.add(dataInicialField, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 2;
+        panel.add(new JLabel("Data Final:"), gbc);
+        gbc.gridx = 1;
+        JTextField dataFinalField = new JTextField("2025-12-31T23:59:59Z", 20);
+        dataFinalField.setToolTipText("Formato: yyyy-MM-ddTHH:mm:ssZ (máximo 31 dias)");
+        panel.add(dataFinalField, gbc);
+        
+        // Botões para períodos predefinidos
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
+        JPanel presetPanel = new JPanel(new FlowLayout());
+        
+        JButton hoje = new JButton("Hoje");
+        hoje.addActionListener(e -> {
+            String today = java.time.LocalDate.now().atStartOfDay().atZone(java.time.ZoneId.of("UTC"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+            String endOfDay = java.time.LocalDate.now().atTime(23, 59, 59).atZone(java.time.ZoneId.of("UTC"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+            dataInicialField.setText(today);
+            dataFinalField.setText(endOfDay);
+        });
+        presetPanel.add(hoje);
+        
+        JButton ultimos7dias = new JButton("Últimos 7 dias");
+        ultimos7dias.addActionListener(e -> {
+            String start = java.time.LocalDate.now().minusDays(7).atStartOfDay().atZone(java.time.ZoneId.of("UTC"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+            String end = java.time.LocalDate.now().atTime(23, 59, 59).atZone(java.time.ZoneId.of("UTC"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+            dataInicialField.setText(start);
+            dataFinalField.setText(end);
+        });
+        presetPanel.add(ultimos7dias);
+        
+        JButton ultimoMes = new JButton("Último mês");
+        ultimoMes.addActionListener(e -> {
+            String start = java.time.LocalDate.now().minusDays(30).atStartOfDay().atZone(java.time.ZoneId.of("UTC"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+            String end = java.time.LocalDate.now().atTime(23, 59, 59).atZone(java.time.ZoneId.of("UTC"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+            dataInicialField.setText(start);
+            dataFinalField.setText(end);
+        });
+        presetPanel.add(ultimoMes);
+        
+        panel.add(presetPanel, gbc);
+        
+        int result = JOptionPane.showConfirmDialog(this, panel, "Consultar Extrato",
+            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        
+        if (result == JOptionPane.OK_OPTION) {
+            String dataInicial = dataInicialField.getText().trim();
+            String dataFinal = dataFinalField.getText().trim();
+            
+            if (dataInicial.isEmpty() || dataFinal.isEmpty()) {
+                ToastNotification.showError("Validação", "Por favor, preencha ambas as datas");
+                return;
+            }
+            
+            // Validação básica de formato de data
+            if (!isValidISODate(dataInicial) || !isValidISODate(dataFinal)) {
+                ToastNotification.showError("Validação", "Formato de data inválido. Use: yyyy-MM-ddTHH:mm:ssZ");
+                return;
+            }
+            
+            performReadTransactions(dataInicial, dataFinal);
+        }
+    }
+    
+    private boolean isValidISODate(String dateStr) {
+        try {
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            java.time.LocalDateTime.parse(dateStr.replace("Z", ""), java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    private void performReadTransactions(String dataInicial, String dataFinal) {
+        try {
+            String response = connection.readTransactions(currentToken, dataInicial, dataFinal);
+            
+            if (MessageBuilder.extractStatus(response)) {
+                showExtratoResults(response);
+                addLogMessage("✓ Extrato consultado com sucesso");
+            } else {
+                String errorMsg = MessageBuilder.extractInfo(response);
+                ToastNotification.showError("Erro", errorMsg);
+                addLogMessage("✗ Erro ao consultar extrato: " + errorMsg);
+            }
+        } catch (Exception e) {
+            logger.error("Erro ao consultar transações", e);
+            ToastNotification.showError("Erro", "Erro ao consultar extrato: " + e.getMessage());
+        }
+    }
+    
+    private void showExtratoResults(String response) {
+        try {
+            JsonNode node = mapper.readTree(response);
+            JsonNode transacoes = node.get("transacoes");
+            
+            if (transacoes == null || !transacoes.isArray()) {
+                JOptionPane.showMessageDialog(this, "Nenhuma transação encontrada no período.", 
+                    "Extrato", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            
+            // Criar tabela para exibir as transações
+            String[] columnNames = {"ID", "Tipo", "Valor", "De/Para", "Data"};
+            Object[][] data = new Object[transacoes.size()][5];
+            
+            for (int i = 0; i < transacoes.size(); i++) {
+                JsonNode transacao = transacoes.get(i);
+                
+                int id = transacao.get("id").asInt();
+                double valor = transacao.get("valor_enviado").asDouble();
+                String dataTransacao = transacao.get("criado_em").asText();
+                
+                JsonNode enviador = transacao.get("usuario_enviador");
+                JsonNode recebedor = transacao.get("usuario_recebedor");
+                
+                String cpfEnviador = enviador.get("cpf").asText();
+                String nomeEnviador = enviador.get("nome").asText();
+                String cpfRecebedor = recebedor.get("cpf").asText();
+                String nomeRecebedor = recebedor.get("nome").asText();
+                
+                // Determinar tipo da transação
+                String tipo;
+                String dePara;
+                if (cpfEnviador.equals(cpfRecebedor)) {
+                    tipo = "DEPÓSITO";
+                    dePara = "Própria conta";
+                } else if (cpfEnviador.equals(currentUserCpf)) {
+                    tipo = "ENVIADA";
+                    dePara = "Para: " + nomeRecebedor + " (" + cpfRecebedor + ")";
+                } else {
+                    tipo = "RECEBIDA";
+                    dePara = "De: " + nomeEnviador + " (" + cpfEnviador + ")";
+                }
+                
+                // Formatar data para exibição
+                String dataFormatada;
+                try {
+                    java.time.LocalDateTime dateTime = java.time.LocalDateTime.parse(
+                        dataTransacao.replace("Z", ""), 
+                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+                    dataFormatada = dateTime.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+                } catch (Exception e) {
+                    dataFormatada = dataTransacao;
+                }
+                
+                data[i][0] = id;
+                data[i][1] = tipo;
+                data[i][2] = String.format("R$ %.2f", valor);
+                data[i][3] = dePara;
+                data[i][4] = dataFormatada;
+            }
+            
+            JTable table = new JTable(data, columnNames);
+            table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            table.getTableHeader().setReorderingAllowed(false);
+            
+            // Configurar largura das colunas
+            table.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
+            table.getColumnModel().getColumn(1).setPreferredWidth(80);  // Tipo
+            table.getColumnModel().getColumn(2).setPreferredWidth(100); // Valor
+            table.getColumnModel().getColumn(3).setPreferredWidth(250); // De/Para
+            table.getColumnModel().getColumn(4).setPreferredWidth(120); // Data
+            
+            JScrollPane scrollPane = new JScrollPane(table);
+            scrollPane.setPreferredSize(new Dimension(650, 400));
+            
+            JPanel extratoPanel = new JPanel(new BorderLayout());
+            extratoPanel.add(new JLabel("Extrato da Conta - Total: " + transacoes.size() + " transações"), BorderLayout.NORTH);
+            extratoPanel.add(scrollPane, BorderLayout.CENTER);
+            
+            JOptionPane.showMessageDialog(this, extratoPanel, "Extrato da Conta", JOptionPane.INFORMATION_MESSAGE);
+            
+        } catch (Exception e) {
+            logger.error("Erro ao processar resposta do extrato", e);
+            ToastNotification.showError("Erro", "Erro ao exibir extrato: " + e.getMessage());
+        }
+    }
+    
     private void updateMainPanelUI() {
         JLabel userInfoLabel = findComponentByName(this, "userInfoLabel", JLabel.class);
         if (userInfoLabel != null && currentUserCpf != null) {
-            userInfoLabel.setText("Usuário: " + currentUserCpf);
+            String serverInfo = "";
+            if (!currentServerHost.isEmpty() && currentServerPort > 0) {
+                serverInfo = " | Servidor: " + currentServerHost + ":" + currentServerPort;
+            }
+            userInfoLabel.setText("Usuário: " + currentUserCpf + serverInfo);
             userInfoLabel.setForeground(UIColors.SUCCESS);
+        }
+    }
+    
+    private void updateServerInfo() {
+        JLabel userInfoLabel = findComponentByName(this, "userInfoLabel", JLabel.class);
+        if (userInfoLabel != null && !currentServerHost.isEmpty() && currentServerPort > 0) {
+            String currentText = userInfoLabel.getText();
+            if (currentText.contains("Usuário:") && currentUserCpf != null) {
+                userInfoLabel.setText("Usuário: " + currentUserCpf + " | Servidor: " + currentServerHost + ":" + currentServerPort);
+            } else {
+                userInfoLabel.setText("Conectado: " + currentServerHost + ":" + currentServerPort);
+            }
         }
     }
     

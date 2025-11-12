@@ -83,6 +83,15 @@ public class MessageBuilder {
         return toJson(message);
     }
     
+    public static String buildReadTransactionsMessage(String token, String dataInicial, String dataFinal) {
+        Map<String, Object> message = new HashMap<>();
+        message.put("operacao", "transacao_ler");
+        message.put("token", token);
+        message.put("data_inicial", dataInicial);
+        message.put("data_final", dataFinal);
+        return toJson(message);
+    }
+    
     public static String buildConnectMessage() {
         Map<String, Object> message = new HashMap<>();
         message.put("operacao", "conectar");
