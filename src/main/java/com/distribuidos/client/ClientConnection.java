@@ -247,6 +247,90 @@ public class ClientConnection {
             // Valida resposta
             Validator.validateServer(response);
             
+            // ========== NOVA VALIDAÇÃO: Protocolo v1.5 (4.11 e 5.2) ==========
+            // Verificar se "operacao" é nulo ou ausente - conforme seção 5.2
+            com.fasterxml.jackson.databind.JsonNode responseNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response);
+            
+            if (!responseNode.has("operacao") || responseNode.get("operacao").isNull()) {
+                logger.error("🔴 PROTOCOLO VIOLATION: operacao nula recebida. Encerrando conexão.");
+                clientGUI.addLogMessage("❌ ERRO PROTOCOLO: operacao nula recebida - desconectando");
+                disconnect();
+                throw new RuntimeException("PROTOCOLO VIOLATION: operacao nula na resposta do servidor (seção 5.2)");
+            }
+            
+            // Validar campos específicos conforme seção 4.11
+            String operacao = responseNode.get("operacao").asText();
+            boolean status = responseNode.get("status").asBoolean();
+            
+            if (status) {
+                // Validar campos obrigatórios por tipo de operação
+                switch (operacao) {
+                    case "usuario_login":
+                        if (!responseNode.has("token") || responseNode.get("token").isNull()) {
+                            String errorMsg = "🔴 PROTOCOLO VIOLATION: usuario_login sem token (seção 4.11)";
+                            logger.error(errorMsg);
+                            clientGUI.addLogMessage("❌ " + errorMsg);
+                            
+                            // Enviar erro_servidor ao servidor
+                            try {
+                                String erroMsg = MessageBuilder.buildServerErrorMessage(
+                                    "usuario_login",
+                                    "Resposta usuario_login chegou sem campo 'token' ou token é nulo"
+                                );
+                                out.println(erroMsg);
+                                clientGUI.addLogMessage("📤 Erro_servidor enviado: " + erroMsg);
+                            } catch (Exception ex) {
+                                logger.error("Erro ao enviar erro_servidor", ex);
+                            }
+                            throw new RuntimeException(errorMsg);
+                        }
+                        break;
+                        
+                    case "usuario_ler":
+                        if (!responseNode.has("usuario") || responseNode.get("usuario").isNull()) {
+                            String errorMsg = "🔴 PROTOCOLO VIOLATION: usuario_ler sem usuario (seção 4.11)";
+                            logger.error(errorMsg);
+                            clientGUI.addLogMessage("❌ " + errorMsg);
+                            
+                            // Enviar erro_servidor ao servidor
+                            try {
+                                String erroMsg = MessageBuilder.buildServerErrorMessage(
+                                    "usuario_ler",
+                                    "Resposta usuario_ler chegou sem campo 'usuario' ou usuario é nulo"
+                                );
+                                out.println(erroMsg);
+                                clientGUI.addLogMessage("📤 Erro_servidor enviado: " + erroMsg);
+                            } catch (Exception ex) {
+                                logger.error("Erro ao enviar erro_servidor", ex);
+                            }
+                            throw new RuntimeException(errorMsg);
+                        }
+                        break;
+                        
+                    case "transacao_ler":
+                        if (!responseNode.has("transacoes") || responseNode.get("transacoes").isNull()) {
+                            String errorMsg = "🔴 PROTOCOLO VIOLATION: transacao_ler sem transacoes (seção 4.11)";
+                            logger.error(errorMsg);
+                            clientGUI.addLogMessage("❌ " + errorMsg);
+                            
+                            // Enviar erro_servidor ao servidor
+                            try {
+                                String erroMsg = MessageBuilder.buildServerErrorMessage(
+                                    "transacao_ler",
+                                    "Resposta transacao_ler chegou sem campo 'transacoes' ou transacoes é nulo"
+                                );
+                                out.println(erroMsg);
+                                clientGUI.addLogMessage("📤 Erro_servidor enviado: " + erroMsg);
+                            } catch (Exception ex) {
+                                logger.error("Erro ao enviar erro_servidor", ex);
+                            }
+                            throw new RuntimeException(errorMsg);
+                        }
+                        break;
+                }
+            }
+            // ===================================================================
+            
             return response;
             
         } catch (IOException e) {

@@ -200,6 +200,16 @@ public class MessageBuilder {
         }
     }
     
+    // Método para construir mensagem de erro do servidor (operacao erro_servidor)
+    // Conforme seção 4.11 do protocolo: cliente reporta erros do servidor
+    public static String buildServerErrorMessage(String operacaoEnviada, String info) {
+        Map<String, Object> message = new HashMap<>();
+        message.put("operacao", "erro_servidor");
+        message.put("operacao_enviada", operacaoEnviada);
+        message.put("info", info);
+        return toJson(message);
+    }
+    
     // Método para extrair operação de uma mensagem JSON
     public static String extractOperation(String jsonMessage) {
         try {

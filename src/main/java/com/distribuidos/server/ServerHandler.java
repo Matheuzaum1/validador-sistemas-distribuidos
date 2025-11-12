@@ -117,6 +117,17 @@ public class ServerHandler extends Thread {
         try {
             String operation = MessageBuilder.extractOperation(message);
             
+            // ========== NOVA VALIDAÇÃO: Protocolo v1.5 (5.2) ==========
+            // Verificar se "operacao" é nulo ou vazio - conforme seção 5.2
+            if (operation == null || operation.trim().isEmpty()) {
+                logger.error("🔴 PROTOCOLO VIOLATION: operacao nula ou vazia. Encerrando conexão.");
+                serverGUI.addLogMessage("❌ Cliente enviou operacao nula - encerrando conexão");
+                // Enviar null ou encerrar conforme protocolo
+                clientSocket.close();
+                return null;
+            }
+            // ============================================================
+            
             // Verifica se a primeira operação é 'conectar'
             if (isFirstOperation && !"conectar".equals(operation)) {
                 return MessageBuilder.buildErrorResponse(operation, 

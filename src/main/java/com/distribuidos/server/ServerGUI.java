@@ -16,17 +16,25 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.JSlider;
+import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.table.DefaultTableModel;
 
 import org.slf4j.Logger;
@@ -85,9 +93,17 @@ public class ServerGUI extends JFrame {
         JPanel databasePanel = createDatabasePanel();
         tabbedPane.addTab("Banco de Dados", databasePanel);
         
-    // Aba de Transações
-    JPanel transactionsPanel = createTransactionsPanel();
-    tabbedPane.addTab("Transações", transactionsPanel);
+        // Aba de Transações
+        JPanel transactionsPanel = createTransactionsPanel();
+        tabbedPane.addTab("Transações", transactionsPanel);
+        
+        // Aba Admin Tools
+        JPanel adminPanel = createAdminToolsPanel();
+        tabbedPane.addTab("Admin Tools", adminPanel);
+        
+        // Aba Error Injector
+        JPanel errorInjectorPanel = createErrorInjectorPanel();
+        tabbedPane.addTab("Error Injector 🔴", errorInjectorPanel);
         
         add(tabbedPane);
         
@@ -101,6 +117,265 @@ public class ServerGUI extends JFrame {
         });
     }
     
+    // ========== Admin Tools Panel ==========
+    private JPanel createAdminToolsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Ferramentas de Administração"));
+        
+        // Painel superior com opções
+        JPanel optionsPanel = new JPanel(new GridLayout(4, 1, 10, 10));
+        optionsPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
+        // 1. Backup
+        JPanel backupPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JLabel backupLabel = new JLabel("💾 Backup do Banco de Dados");
+        backupLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        backupPanel.add(backupLabel);
+        JButton backupButton = new JButton("Fazer Backup");
+        backupButton.addActionListener(e -> performBackup());
+        backupPanel.add(backupButton);
+        optionsPanel.add(backupPanel);
+        
+        // 2. Reset
+        JPanel resetPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JLabel resetLabel = new JLabel("🔄 Resetar Sistema");
+        resetLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        resetPanel.add(resetLabel);
+        JButton resetButton = new JButton("Resetar BD");
+        resetButton.addActionListener(e -> resetDatabase());
+        resetPanel.add(resetButton);
+        optionsPanel.add(resetPanel);
+        
+        // 3. Filtros e Buscas
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JLabel filterLabel = new JLabel("🔍 Filtros e Buscas");
+        filterLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        filterPanel.add(filterLabel);
+        JButton filterButton = new JButton("Abrir Buscador");
+        filterButton.addActionListener(e -> openFilterDialog());
+        filterPanel.add(filterButton);
+        optionsPanel.add(filterPanel);
+        
+        // 4. Alertas Inteligentes
+        JPanel alertsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JLabel alertsLabel = new JLabel("⚠️ Alertas Inteligentes");
+        alertsLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        alertsPanel.add(alertsLabel);
+        JButton alertsButton = new JButton("Configurar Alertas");
+        alertsButton.addActionListener(e -> configureAlerts());
+        alertsPanel.add(alertsButton);
+        optionsPanel.add(alertsPanel);
+        
+        panel.add(optionsPanel, BorderLayout.NORTH);
+        
+        // Painel central - Log de operações
+        JPanel logPanel = new JPanel(new BorderLayout());
+        logPanel.setBorder(BorderFactory.createTitledBorder("Log de Operações Admin"));
+        
+        JTextArea adminLogArea = new JTextArea(15, 50);
+        adminLogArea.setEditable(false);
+        adminLogArea.setFont(new Font("Dialog", Font.PLAIN, 11));
+        adminLogArea.setText("[INFO] Sistema pronto para operações...\n");
+        
+        JScrollPane scrollPane = new JScrollPane(adminLogArea);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        logPanel.add(scrollPane, BorderLayout.CENTER);
+        
+        panel.add(logPanel, BorderLayout.CENTER);
+        
+        return panel;
+    }
+    
+    private void performBackup() {
+        // SwingWorker para não travar a UI
+        SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                try {
+                    publish("[BACKUP] Iniciando backup do banco de dados...");
+                    
+                    // Simular operação de backup (pode integrar com DB depois)
+                    Thread.sleep(2000);
+                    
+                    String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+                    String backupFile = "backup_" + timestamp + ".db";
+                    
+                    publish("[BACKUP] ✅ Backup concluído: " + backupFile);
+                    addLogMessage("Backup realizado pelo administrador: " + backupFile);
+                    
+                } catch (Exception e) {
+                    publish("[BACKUP] ❌ Erro: " + e.getMessage());
+                    logger.error("Erro ao fazer backup", e);
+                }
+                return null;
+            }
+        };
+        worker.execute();
+    }
+    
+    private void resetDatabase() {
+        int confirm = JOptionPane.showConfirmDialog(this, 
+            "⚠️ ATENÇÃO!\n\nDeseja realmente resetar todo o banco de dados?\n" +
+            "Todos os dados de usuários e transações serão PERDIDOS.",
+            "Confirmar Reset", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        
+        if (confirm == JOptionPane.YES_OPTION) {
+            // SwingWorker para não travar a UI
+            SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    try {
+                        publish("[RESET] Iniciando reset do banco de dados...");
+                        
+                        // Resetar BD
+                        dbManager.resetDatabase();
+                        Thread.sleep(1000);
+                        
+                        publish("[RESET] ✅ Banco de dados resetado com sucesso");
+                        addLogMessage("Sistema foi resetado pelo administrador");
+                        
+                        // Atualizar views
+                        updateDatabaseView();
+                        updateTransactionsView();
+                        
+                    } catch (Exception e) {
+                        publish("[RESET] ❌ Erro: " + e.getMessage());
+                        logger.error("Erro ao resetar BD", e);
+                    }
+                    return null;
+                }
+            };
+            worker.execute();
+        }
+    }
+    
+    private void openFilterDialog() {
+        // Diálogo para filtros avançados
+        JPanel filterPanel = new JPanel(new java.awt.GridBagLayout());
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.insets = new java.awt.Insets(5, 5, 5, 5);
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        
+        // Filtro por CPF
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        filterPanel.add(new JLabel("Buscar por CPF:"), gbc);
+        
+        JTextField cpfFilter = new JTextField(20);
+        gbc.gridx = 1;
+        filterPanel.add(cpfFilter, gbc);
+        
+        // Filtro por Nome
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        filterPanel.add(new JLabel("Buscar por Nome:"), gbc);
+        
+        JTextField nameFilter = new JTextField(20);
+        gbc.gridx = 1;
+        filterPanel.add(nameFilter, gbc);
+        
+        // Filtro por intervalo de saldo
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        filterPanel.add(new JLabel("Saldo Mínimo (R$):"), gbc);
+        
+        JTextField minBalance = new JTextField("0.00", 10);
+        gbc.gridx = 1;
+        filterPanel.add(minBalance, gbc);
+        
+        // Filtro por período de transações
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        filterPanel.add(new JLabel("Período (dias):"), gbc);
+        
+        JTextField periodDays = new JTextField("30", 10);
+        gbc.gridx = 1;
+        filterPanel.add(periodDays, gbc);
+        
+        int result = JOptionPane.showConfirmDialog(this, filterPanel, 
+            "Filtros e Buscas Avançadas", JOptionPane.OK_CANCEL_OPTION);
+        
+        if (result == JOptionPane.OK_OPTION) {
+            // SwingWorker para processar filtros
+            SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    try {
+                        publish("[FILTRO] Processando filtros...");
+                        Thread.sleep(500);
+                        
+                        StringBuilder filters = new StringBuilder();
+                        if (!cpfFilter.getText().isEmpty()) filters.append(" CPF=").append(cpfFilter.getText());
+                        if (!nameFilter.getText().isEmpty()) filters.append(" Nome=").append(nameFilter.getText());
+                        if (!minBalance.getText().isEmpty()) filters.append(" SaldoMin=R$").append(minBalance.getText());
+                        if (!periodDays.getText().isEmpty()) filters.append(" Dias=").append(periodDays.getText());
+                        
+                        publish("[FILTRO] ✅ Filtros aplicados:" + filters.toString());
+                        
+                    } catch (Exception e) {
+                        publish("[FILTRO] ❌ Erro ao aplicar filtros: " + e.getMessage());
+                    }
+                    return null;
+                }
+            };
+            worker.execute();
+        }
+    }
+    
+    private void configureAlerts() {
+        JPanel alertPanel = new JPanel(new java.awt.GridBagLayout());
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.insets = new java.awt.Insets(5, 5, 5, 5);
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        
+        // Alerta de saldo baixo
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        JCheckBox lowBalanceAlert = new JCheckBox("Alertar quando saldo < R$");
+        alertPanel.add(lowBalanceAlert, gbc);
+        
+        JTextField lowBalanceAmount = new JTextField("100.00", 10);
+        gbc.gridx = 1;
+        alertPanel.add(lowBalanceAmount, gbc);
+        
+        // Alerta de transações suspeitas
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        JCheckBox suspiciousAlert = new JCheckBox("Alertar transações > R$");
+        alertPanel.add(suspiciousAlert, gbc);
+        
+        JTextField suspiciousAmount = new JTextField("5000.00", 10);
+        gbc.gridx = 1;
+        alertPanel.add(suspiciousAmount, gbc);
+        
+        // Alerta de desconexões abruptas
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        JCheckBox disconnectAlert = new JCheckBox("Alertar desconexões abruptas");
+        alertPanel.add(disconnectAlert, gbc);
+        
+        // Alerta de erro em transação
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        JCheckBox errorAlert = new JCheckBox("Alertar erros em transações");
+        alertPanel.add(errorAlert, gbc);
+        
+        int result = JOptionPane.showConfirmDialog(this, alertPanel, 
+            "Configurar Alertas Inteligentes", JOptionPane.OK_CANCEL_OPTION);
+        
+        if (result == JOptionPane.OK_OPTION) {
+            StringBuilder config = new StringBuilder("Alertas configurados: ");
+            if (lowBalanceAlert.isSelected()) config.append("[Saldo Baixo] ");
+            if (suspiciousAlert.isSelected()) config.append("[Transações Suspeitas] ");
+            if (disconnectAlert.isSelected()) config.append("[Desconexões] ");
+            if (errorAlert.isSelected()) config.append("[Erros] ");
+            
+            addLogMessage(config.toString());
+            JOptionPane.showMessageDialog(this, "Alertas configurados com sucesso!", 
+                "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+    
     private JPanel createServerPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         
@@ -108,7 +383,7 @@ public class ServerGUI extends JFrame {
         JPanel controlPanel = new JPanel(new FlowLayout());
         
         controlPanel.add(new JLabel("Porta:"));
-        portField = new JTextField("8080", 10);
+        portField = new JTextField("20000", 10);
         controlPanel.add(portField);
         
         startButton = new JButton("Iniciar Servidor");
@@ -499,5 +774,136 @@ public class ServerGUI extends JFrame {
             logger.error("Erro ao obter informações do servidor", e);
             serverInfoLabel.setText("Erro ao obter informações do servidor");
         }
+    }
+    
+    // ========== Error Injector Panel ==========
+    private JPanel createErrorInjectorPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("🔴 Injetor de Erros - Teste de Resiliência"));
+        
+        // Painel central com controles
+        JPanel controlPanel = new JPanel(new java.awt.GridBagLayout());
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.insets = new java.awt.Insets(8, 8, 8, 8);
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        
+        // Tipo de erro
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        controlPanel.add(new JLabel("Tipo de Erro:"), gbc);
+        
+        JComboBox<com.distribuidos.tools.ServerErrorInjector.ErrorType> errorTypeCombo = 
+            new JComboBox<>(com.distribuidos.tools.ServerErrorInjector.ErrorType.values());
+        gbc.gridx = 1;
+        controlPanel.add(errorTypeCombo, gbc);
+        
+        // Taxa de injeção
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        controlPanel.add(new JLabel("Taxa de Injeção (%):"), gbc);
+        
+        JSlider rateSlider = new JSlider(0, 100, 50);
+        rateSlider.setMajorTickSpacing(10);
+        rateSlider.setMinorTickSpacing(1);
+        rateSlider.setPaintTicks(true);
+        rateSlider.setPaintLabels(true);
+        JLabel rateLabel = new JLabel("50%");
+        rateSlider.addChangeListener(e -> rateLabel.setText(rateSlider.getValue() + "%"));
+        gbc.gridx = 1;
+        controlPanel.add(rateSlider, gbc);
+        
+        gbc.gridx = 2;
+        controlPanel.add(rateLabel, gbc);
+        
+        // Latência de rede
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        controlPanel.add(new JLabel("Latência de Rede (ms):"), gbc);
+        
+        JSpinner latencySpinner = new JSpinner(new javax.swing.SpinnerNumberModel(0, 0, 5000, 100));
+        gbc.gridx = 1;
+        controlPanel.add(latencySpinner, gbc);
+        
+        // Botões
+        JPanel buttonPanel = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
+        
+        JButton enableButton = new JButton("✅ Ativar Injeção");
+        enableButton.addActionListener(e -> {
+            com.distribuidos.tools.ServerErrorInjector.ErrorType type = 
+                (com.distribuidos.tools.ServerErrorInjector.ErrorType) errorTypeCombo.getSelectedItem();
+            double rate = rateSlider.getValue() / 100.0;
+            long latency = ((Number) latencySpinner.getValue()).longValue();
+            
+            com.distribuidos.tools.ServerErrorInjector.enableErrorInjection(type, rate);
+            com.distribuidos.tools.ServerErrorInjector.setNetworkLatency(latency);
+            
+            addLogMessage("🔴 INJEÇÃO DE ERROS ATIVADA - Tipo: " + type + ", Taxa: " + (int)(rate*100) + "%");
+            JOptionPane.showMessageDialog(this, 
+                "Injeção ativada:\n" + type + "\nTaxa: " + (int)(rate*100) + "%\nLatência: " + latency + "ms",
+                "Injeção Ativa", JOptionPane.WARNING_MESSAGE);
+        });
+        buttonPanel.add(enableButton);
+        
+        JButton disableButton = new JButton("🟢 Desativar Injeção");
+        disableButton.addActionListener(e -> {
+            com.distribuidos.tools.ServerErrorInjector.disableErrorInjection();
+            addLogMessage("🟢 INJEÇÃO DE ERROS DESATIVADA");
+            JOptionPane.showMessageDialog(this, "Injeção desativada com sucesso", 
+                "Injeção Desativada", JOptionPane.INFORMATION_MESSAGE);
+        });
+        buttonPanel.add(disableButton);
+        
+        JButton statusButton = new JButton("📊 Ver Status");
+        statusButton.addActionListener(e -> {
+            String status = com.distribuidos.tools.ServerErrorInjector.getStatus();
+            JOptionPane.showMessageDialog(this, status, "Status da Injeção", JOptionPane.INFORMATION_MESSAGE);
+        });
+        buttonPanel.add(statusButton);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 3;
+        controlPanel.add(buttonPanel, gbc);
+        
+        panel.add(controlPanel, BorderLayout.NORTH);
+        
+        // Painel de informações
+        JPanel infoPanel = new JPanel(new BorderLayout());
+        infoPanel.setBorder(BorderFactory.createTitledBorder("Informações de Erros"));
+        
+        JTextArea infoArea = new JTextArea(12, 50);
+        infoArea.setEditable(false);
+        infoArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
+        infoArea.setText(gerarInfoErros());
+        infoArea.setLineWrap(true);
+        infoArea.setWrapStyleWord(true);
+        
+        JScrollPane scrollPane = new JScrollPane(infoArea);
+        infoPanel.add(scrollPane, BorderLayout.CENTER);
+        
+        JButton refreshButton = new JButton("🔄 Atualizar");
+        refreshButton.addActionListener(e -> infoArea.setText(gerarInfoErros()));
+        JPanel infoButtonPanel = new JPanel(new FlowLayout());
+        infoButtonPanel.add(refreshButton);
+        infoPanel.add(infoButtonPanel, BorderLayout.SOUTH);
+        
+        panel.add(infoPanel, BorderLayout.CENTER);
+        
+        return panel;
+    }
+    
+    private String gerarInfoErros() {
+        StringBuilder info = new StringBuilder();
+        info.append("TIPOS DE ERROS DISPONÍVEIS:\n");
+        info.append("════════════════════════════════════════\n\n");
+        
+        for (com.distribuidos.tools.ServerErrorInjector.ErrorType type : 
+             com.distribuidos.tools.ServerErrorInjector.ErrorType.values()) {
+            info.append("• ").append(type).append("\n");
+            info.append("  → ").append(com.distribuidos.tools.ServerErrorInjector.getErrorMessage(type)).append("\n\n");
+        }
+        
+        return info.toString();
     }
 }

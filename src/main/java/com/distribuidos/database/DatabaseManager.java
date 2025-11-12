@@ -38,21 +38,64 @@ public class DatabaseManager {
                 "senha TEXT NOT NULL," +
                 "saldo REAL DEFAULT 0.0," +
                 "criado_em TEXT NOT NULL," +
-                "atualizado_em TEXT NOT NULL" +
+                "atualizado_em TEXT NOT NULL," +
+                "conta_ativa INTEGER DEFAULT 1" +
                 ")";
             
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute(createTableSQL);
-                // Create transactions table
+                
+                // Create transactions table for traditional transfers/deposits
                 String createTransacoes = "CREATE TABLE IF NOT EXISTS transacoes (" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "id INTEGER PRIMARY KEY," +
                     "cpf_origem TEXT," +
                     "cpf_destino TEXT," +
                     "valor REAL NOT NULL," +
-                    "timestamp TEXT NOT NULL" +
+                    "timestamp TEXT NOT NULL," +
+                    "tipo_transacao TEXT DEFAULT 'transferencia'" +
                     ")";
                 stmt.execute(createTransacoes);
-                logger.info("Tabelas de usuarios e transacoes criadas/verificadas com sucesso");
+                
+                // Create Pix keys table
+                String createChavesPix = "CREATE TABLE IF NOT EXISTS chaves_pix (" +
+                    "id INTEGER PRIMARY KEY," +
+                    "cpf_dono TEXT NOT NULL," +
+                    "tipo_chave TEXT NOT NULL," +
+                    "valor_chave TEXT NOT NULL UNIQUE," +
+                    "criada_em TEXT NOT NULL," +
+                    "ativa INTEGER DEFAULT 1," +
+                    "FOREIGN KEY (cpf_dono) REFERENCES usuarios(cpf)" +
+                    ")";
+                stmt.execute(createChavesPix);
+                
+                // Create Pix transactions table
+                String createTransacoesPix = "CREATE TABLE IF NOT EXISTS transacoes_pix (" +
+                    "id INTEGER PRIMARY KEY," +
+                    "chave_pix_origem TEXT NOT NULL," +
+                    "chave_pix_destino TEXT NOT NULL," +
+                    "cpf_origem TEXT NOT NULL," +
+                    "cpf_destino TEXT NOT NULL," +
+                    "valor REAL NOT NULL," +
+                    "timestamp TEXT NOT NULL," +
+                    "status TEXT DEFAULT 'sucesso'," +
+                    "identificador_pix TEXT UNIQUE," +
+                    "FOREIGN KEY (cpf_origem) REFERENCES usuarios(cpf)," +
+                    "FOREIGN KEY (cpf_destino) REFERENCES usuarios(cpf)" +
+                    ")";
+                stmt.execute(createTransacoesPix);
+                
+                // Create indices for performance
+                stmt.execute("CREATE INDEX IF NOT EXISTS idx_transacoes_origem ON transacoes(cpf_origem)");
+                stmt.execute("CREATE INDEX IF NOT EXISTS idx_transacoes_destino ON transacoes(cpf_destino)");
+                stmt.execute("CREATE INDEX IF NOT EXISTS idx_transacoes_timestamp ON transacoes(timestamp)");
+                stmt.execute("CREATE INDEX IF NOT EXISTS idx_chaves_pix_dono ON chaves_pix(cpf_dono)");
+                stmt.execute("CREATE INDEX IF NOT EXISTS idx_chaves_pix_valor ON chaves_pix(valor_chave)");
+                stmt.execute("CREATE INDEX IF NOT EXISTS idx_chaves_pix_tipo ON chaves_pix(tipo_chave)");
+                stmt.execute("CREATE INDEX IF NOT EXISTS idx_transacoes_pix_origem ON transacoes_pix(cpf_origem)");
+                stmt.execute("CREATE INDEX IF NOT EXISTS idx_transacoes_pix_destino ON transacoes_pix(cpf_destino)");
+                stmt.execute("CREATE INDEX IF NOT EXISTS idx_transacoes_pix_timestamp ON transacoes_pix(timestamp)");
+                
+                logger.info("Tabelas de usuarios, transacoes, chaves_pix e transacoes_pix criadas/verificadas com sucesso");
             }
         } catch (SQLException e) {
             logger.error("Erro ao inicializar banco de dados: {}", e.getMessage(), e);
@@ -486,5 +529,255 @@ public class DatabaseManager {
     
     public boolean userExists(String cpf) {
         return getUser(cpf) != null;
+    }
+    
+    public void resetDatabase() {
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             Statement stmt = conn.createStatement()) {
+            
+            // Delete all Pix transactions first (has FK references)
+            stmt.execute("DELETE FROM transacoes_pix");
+            
+            // Delete all Pix keys
+            stmt.execute("DELETE FROM chaves_pix");
+            
+            // Delete all transactions
+            stmt.execute("DELETE FROM transacoes");
+            
+            // Delete all users
+            stmt.execute("DELETE FROM usuarios");
+            
+            // Reinitialize with default data
+            populateDatabase();
+            
+            logger.info("Banco de dados foi resetado com sucesso");
+        } catch (SQLException e) {
+            logger.error("Erro ao resetar banco de dados", e);
+            throw new RuntimeException("Erro ao resetar banco de dados: " + e.getMessage());
+        }
+    }
+    
+    // ============================================================================
+    // MÉTODOS PARA GERENCIAR CHAVES PIX
+    // ============================================================================
+    
+    /**
+     * Registra uma nova chave Pix para um usuário
+     * @param cpfDono CPF do proprietário da chave
+     * @param tipoChave Tipo da chave (cpf, email, telefone, cnpj, aleatoria)
+     * @param valorChave Valor da chave Pix
+     * @return true se registrada com sucesso
+     */
+    public boolean registrarChavePix(String cpfDono, String tipoChave, String valorChave) {
+        String sql = "INSERT INTO chaves_pix (cpf_dono, tipo_chave, valor_chave, criada_em, ativa) " +
+                     "VALUES (?, ?, ?, ?, 1)";
+        
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setString(1, cpfDono);
+            ps.setString(2, tipoChave);
+            ps.setString(3, valorChave);
+            ps.setString(4, LocalDateTime.now().toString());
+            
+            ps.executeUpdate();
+            logger.info("Chave Pix registrada: {} para CPF {}", tipoChave, cpfDono);
+            return true;
+        } catch (SQLException e) {
+            logger.error("Erro ao registrar chave Pix: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Busca o CPF do proprietário de uma chave Pix
+     * @param valorChave Valor da chave Pix
+     * @return CPF do proprietário ou null se não encontrado
+     */
+    public String buscarCpfPorChavePix(String valorChave) {
+        String sql = "SELECT cpf_dono FROM chaves_pix WHERE valor_chave = ? AND ativa = 1";
+        
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setString(1, valorChave);
+            ResultSet rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getString("cpf_dono");
+            }
+        } catch (SQLException e) {
+            logger.error("Erro ao buscar chave Pix: {}", e.getMessage(), e);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Lista todas as chaves Pix ativas de um usuário
+     * @param cpfDono CPF do proprietário
+     * @return Lista de chaves Pix (formato: "tipo_chave: valor_chave")
+     */
+    public java.util.List<String> listarChavesPix(String cpfDono) {
+        java.util.List<String> chaves = new java.util.ArrayList<>();
+        String sql = "SELECT tipo_chave, valor_chave FROM chaves_pix WHERE cpf_dono = ? AND ativa = 1 ORDER BY criada_em DESC";
+        
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setString(1, cpfDono);
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                String tipo = rs.getString("tipo_chave");
+                String valor = rs.getString("valor_chave");
+                chaves.add(tipo + ": " + valor);
+            }
+        } catch (SQLException e) {
+            logger.error("Erro ao listar chaves Pix: {}", e.getMessage(), e);
+        }
+        
+        return chaves;
+    }
+    
+    /**
+     * Desativa uma chave Pix
+     * @param valorChave Valor da chave Pix a desativar
+     * @return true se desativada com sucesso
+     */
+    public boolean desativarChavePix(String valorChave) {
+        String sql = "UPDATE chaves_pix SET ativa = 0 WHERE valor_chave = ?";
+        
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setString(1, valorChave);
+            int updated = ps.executeUpdate();
+            
+            if (updated > 0) {
+                logger.info("Chave Pix desativada: {}", valorChave);
+                return true;
+            }
+        } catch (SQLException e) {
+            logger.error("Erro ao desativar chave Pix: {}", e.getMessage(), e);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Registra uma transação Pix no banco de dados
+     * @param chavePixOrigem Chave Pix do remetente
+     * @param chavePixDestino Chave Pix do destinatário
+     * @param cpfOrigem CPF do remetente
+     * @param cpfDestino CPF do destinatário
+     * @param valor Valor da transferência
+     * @param identificadorPix Identificador único da transação
+     * @return true se registrada com sucesso
+     */
+    public boolean registrarTransacaoPix(String chavePixOrigem, String chavePixDestino, 
+                                        String cpfOrigem, String cpfDestino, 
+                                        double valor, String identificadorPix) {
+        String sql = "INSERT INTO transacoes_pix " +
+                     "(chave_pix_origem, chave_pix_destino, cpf_origem, cpf_destino, valor, timestamp, status, identificador_pix) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, 'sucesso', ?)";
+        
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setString(1, chavePixOrigem);
+            ps.setString(2, chavePixDestino);
+            ps.setString(3, cpfOrigem);
+            ps.setString(4, cpfDestino);
+            ps.setDouble(5, valor);
+            ps.setString(6, LocalDateTime.now().toString());
+            ps.setString(7, identificadorPix);
+            
+            ps.executeUpdate();
+            logger.info("Transação Pix registrada: {} -> {} (R$ {})", chavePixOrigem, chavePixDestino, valor);
+            return true;
+        } catch (SQLException e) {
+            logger.error("Erro ao registrar transação Pix: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Busca transações Pix de um usuário
+     * @param cpf CPF do usuário (enviador ou recebedor)
+     * @return Lista de transações Pix como JSON
+     */
+    public java.util.List<String> listarTransacoesPix(String cpf) {
+        java.util.List<String> transacoes = new java.util.ArrayList<>();
+        String sql = "SELECT * FROM transacoes_pix WHERE cpf_origem = ? OR cpf_destino = ? ORDER BY timestamp DESC LIMIT 50";
+        
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setString(1, cpf);
+            ps.setString(2, cpf);
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                String origem = rs.getString("cpf_origem");
+                String destino = rs.getString("cpf_destino");
+                double valor = rs.getDouble("valor");
+                String timestamp = rs.getString("timestamp");
+                String chavePixOrigem = rs.getString("chave_pix_origem");
+                String chavePixDestino = rs.getString("chave_pix_destino");
+                
+                String transacao = String.format(
+                    "{\"de\": \"%s (%s)\", \"para\": \"%s (%s)\", \"valor\": %.2f, \"data\": \"%s\"}",
+                    chavePixOrigem, origem, chavePixDestino, destino, valor, timestamp
+                );
+                transacoes.add(transacao);
+            }
+        } catch (SQLException e) {
+            logger.error("Erro ao listar transações Pix: {}", e.getMessage(), e);
+        }
+        
+        return transacoes;
+    }
+    
+    /**
+     * Conta o número total de chaves Pix ativas
+     * @return Número de chaves Pix
+     */
+    public int countChavesPix() {
+        String sql = "SELECT COUNT(*) FROM chaves_pix WHERE ativa = 1";
+        
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            logger.error("Erro ao contar chaves Pix", e);
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Conta o número total de transações Pix
+     * @return Número de transações Pix
+     */
+    public int countTransacoesPix() {
+        String sql = "SELECT COUNT(*) FROM transacoes_pix";
+        
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            logger.error("Erro ao contar transações Pix", e);
+        }
+        
+        return 0;
     }
 }
