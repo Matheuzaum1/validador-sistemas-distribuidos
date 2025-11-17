@@ -25,7 +25,6 @@ com\distribuidos\exception\InsufficientBalanceException.class
 com\distribuidos\common\TokenManager.class
 com\distribuidos\database\DatabaseManager.class
 com\distribuidos\exception\ApplicationException.class
-com\distribuidos\tools\ClientErrorInjector$1.class
 com\distribuidos\exception\ValidationException.class
 com\distribuidos\tools\ServerErrorInjector$ErrorType.class
 validador\Validator$1.class
@@ -37,7 +36,6 @@ com\distribuidos\client\ClientGUI$1.class
 com\distribuidos\tools\HeadlessServerStarter.class
 com\distribuidos\common\ValidationHelper$BaseValidator.class
 com\distribuidos\tools\DbInspect.class
-com\distribuidos\tools\ServerErrorInjector$1.class
 com\newpix\server\gui\ServerGUI.class
 com\distribuidos\common\ValidationHelper.class
 com\newpix\server\NewPixServer.class

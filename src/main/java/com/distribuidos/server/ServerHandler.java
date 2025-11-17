@@ -340,14 +340,14 @@ public class ServerHandler extends Thread {
             String token = node.get("token").asText();
             String cpfOrigem = TokenManager.getCpfFromToken(token);
             if (cpfOrigem == null) {
-                return MessageBuilder.buildErrorResponse("transacao_transferir", "Token inválido ou expirado");
+                return MessageBuilder.buildErrorResponse("transacao_criar", "Token inválido ou expirado");
             }
 
             String cpfDestino = node.get("cpf_destino").asText();
             double valor = node.get("valor").asDouble();
 
             if (!dbManager.userExists(cpfDestino)) {
-                return MessageBuilder.buildErrorResponse("transacao_transferir", "Usuário destino não encontrado");
+                return MessageBuilder.buildErrorResponse("transacao_criar", "Usuário destino não encontrado");
             }
 
             boolean ok = dbManager.createTransfer(cpfOrigem, cpfDestino, valor);
@@ -362,7 +362,7 @@ public class ServerHandler extends Thread {
             }
         } catch (Exception e) {
             logger.error("Erro ao processar transferência", e);
-            return MessageBuilder.buildErrorResponse("transacao_transferir", "Erro interno ao processar transferência");
+            return MessageBuilder.buildErrorResponse("transacao_criar", "Erro interno ao processar transferência");
         }
     }
 

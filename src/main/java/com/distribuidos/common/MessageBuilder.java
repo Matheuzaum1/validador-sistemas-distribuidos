@@ -155,6 +155,10 @@ public class MessageBuilder {
                         // keep nomeOrig null on error
                     }
                 }
+                // Garantir que nome nunca seja null para validação
+                if (nomeOrig == null || nomeOrig.trim().isEmpty()) {
+                    nomeOrig = "Usuário não encontrado";
+                }
                 enviador.put("nome", nomeOrig);
                 enviador.put("cpf", cpfOrig);
                 item.put("usuario_enviador", enviador);
@@ -169,6 +173,10 @@ public class MessageBuilder {
                     } catch (Exception e) {
                         // keep nomeDest null on error
                     }
+                }
+                // Garantir que nome nunca seja null para validação
+                if (nomeDest == null || nomeDest.trim().isEmpty()) {
+                    nomeDest = "Usuário não encontrado";
                 }
                 recebedor.put("nome", nomeDest);
                 recebedor.put("cpf", cpfDest);

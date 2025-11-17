@@ -1,39 +1,39 @@
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\client\CpfFormatter.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\validador\Validator.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\client\ClientGUI.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\TokenManager.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\newpix\client\gui\ClientGUI.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\ValidationException.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\server\ServerHandler.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\InProcessE2ETestRunner.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\client\ClientMain.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\Transacao.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\InsufficientBalanceException.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\HeadlessServerStarter.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\server\ServerGUI.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\ApplicationException.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\LoadingIndicator.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\DatabaseException.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\database\DatabaseManager.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\validador\RulesEnum.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\newpix\server\gui\ServerGUI.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\MessageBuilder.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\ServerErrorInjector.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\newpix\server\NewPixServer.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\ErrorCode.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\util\RetryUtil.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\Usuario.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\ClientInfo.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\server\ServerMain.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\newpix\client\NewPixClient.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\ToastNotification.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\handler\GlobalExceptionHandler.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\client\MoneyFormatter.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\DbInspect.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\client\ClientConnection.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\MDCManager.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\ClientErrorInjector.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\ConnectionException.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\UIColors.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\ClientTestRunner.java
-C:\Users\Matheus Henrique\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\ValidationHelper.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\ClientInfo.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\InsufficientBalanceException.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\handler\GlobalExceptionHandler.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\newpix\server\gui\ServerGUI.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\HeadlessServerStarter.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\ClientErrorInjector.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\MessageBuilder.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\database\DatabaseManager.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\LoadingIndicator.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\client\ClientMain.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\ClientTestRunner.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\newpix\client\gui\ClientGUI.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\client\MoneyFormatter.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\ApplicationException.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\ServerErrorInjector.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\ToastNotification.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\Transacao.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\client\ClientGUI.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\TokenManager.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\ValidationException.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\newpix\server\NewPixServer.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\DatabaseException.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\server\ServerMain.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\ErrorCode.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\validador\Validator.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\ConnectionException.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\ValidationHelper.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\DbInspect.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\InProcessE2ETestRunner.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\client\ClientConnection.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\UIColors.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\server\ServerHandler.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\util\RetryUtil.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\validador\RulesEnum.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\server\ServerGUI.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\MDCManager.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\newpix\client\NewPixClient.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\client\CpfFormatter.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\Usuario.java

@@ -1,9 +1,9 @@
 
 # Protocolo de Mensagens - Sistema Bancário Simples
 
-Versão atual: 1.5
+Versão atual: 1.6
 
-Últimos tópicos atualizados: `4.8.`, `4.9.`
+Últimos tópicos atualizados: `4.11.`, `5.2`
 
 Um projeto para a disciplina de Sistemas Distribuídos que define um protocolo de comunicação baseado em JSON para as operações de um sistema bancário simplificado.
 
@@ -432,8 +432,8 @@ O Usuário pediu as transações do dia 1 de janeiro a 1 de maio, o servidor dev
         "nome": "Yan Jardim Leal",
         "cpf": "098.765.432-11"
       },
-      criado_em: "2025-08-02T00:00:00Z",
-      atualizado_em: "2025-08-02T00:00:00Z"
+      "criado_em": "2025-08-02T00:00:00Z",
+      "atualizado_em": "2025-08-02T00:00:00Z"
     }
   ]
 }
@@ -558,6 +558,39 @@ O cliente deve ser capaz de reportar este erro:
 
 Isso é um requisito não funcional do professor, o servidor apenas deve dar um print no log com a operacao "erro_servidor" recebida.
 
+IMPORTANTE: caso o erro ocorra devido ao fato da mensagem recebida pelo cliente não conter o campo "operacao", ou esse campo possuir um null, a mensagem devolvida ao servidor deverá conter o campo "operacao_enviada" com o valor null.
+Exemplo:
+
+#### Recebimento (Servidor → Cliente) do exemplo acima
+
+```
+{
+  "operacao": null,
+  "status": true,
+  "info": "Usuário cadastrado com sucesso.",
+}
+```
+ou
+
+```
+{
+  "status": true,
+  "info": "Usuário cadastrado com sucesso.",
+}
+```
+
+O cliente deve ser capaz de reportar este erro:
+
+#### Envio (Cliente → Servidor)
+
+```
+{
+  "operacao": "erro_servidor",
+  "operacao_enviada": null,
+  "info": "O usuário enviado pelo servidor era nulo".
+}
+```
+
 ## 5. Em caso de erro
 
 ### 5.1. Erros padrões
@@ -578,7 +611,7 @@ O que isso significa? Quando o cliente receber uma operação com o `status` com
 ### 5.2. Erros de JSON
 Caso o servidor envie uma mensagem que não contenha `operacao`, `status`, `info` OU campos extras de operações, siga o protocolo [`4.11.`](https://github.com/Yan-Jardim-Leal/validador-sistemas-distribuidos?tab=readme-ov-file#411-erro-na-resposta-do-servidor-erro_servidor)
 
-Caso o cliente envie uma mensagem que não contenha `operacao`,<br>o servidor/cliente que recebe devem retornar `null` para encerrar a conexão.
+Caso o cliente envie uma mensagem que não contenha `operacao`,  ou caso o valor dessa operação não exista no protocolo, <br>o servidor que recebe deve retornar `null` para encerrar a conexão.
 
 ### 5.3 Erros na conexão
 Caso a primeira `operacao` a ser recebida não seja `conectar` um erro deve ser retornado como:
@@ -646,4 +679,3 @@ Apenas será necessário transformar em String, e ler a String com funções já
   "data_inicial": "2025-08-01T00:00:00Z",
   "data_final": "2025-08-27T23:59:59Z"
 }`
-
