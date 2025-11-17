@@ -2,14 +2,11 @@
 
 **Sistema bancário distribuído em Java com comunicação cliente-servidor, operações CRUD, transações financeiras e validação rigorosa de protocolo.**
 
-> **📊 AVALIAÇÃO EP-2: 3.0/3.0 pontos**
-> - ✅ Cliente: 1.2/1.2 pts (todas as 6 funcionalidades implementadas)
-> - ✅ Servidor: 1.8/1.8 pts (todas as 9 funcionalidades implementadas)
-
 ## 🚀 Execução Rápida
 
+### Windows
 ```powershell
-# Windows - Executar diretamente
+# Executar diretamente
 .\scripts\sistema.ps1
 
 # Ou compilar e executar separadamente
@@ -18,11 +15,24 @@
 .\scripts\cliente.ps1     # Terminal 2
 ```
 
+### Linux/macOS
+```bash
+# Dar permissão aos scripts
+chmod +x scripts/*.sh
+
+# Compilar e executar servidor
+./scripts/compilar.sh
+./scripts/servidor.sh    # Terminal 1
+
+# Em outro terminal: executar cliente
+./scripts/cliente.sh     # Terminal 2
+```
+
 ## ⚙️ Requisitos do Sistema
 
 - **Java 17+** (testado com Java 25)
 - **Maven 3.6+**
-- **Windows PowerShell** (scripts .ps1)
+- **SO Suportados**: Windows, Linux, macOS
 - **Porta 20000** disponível (configurável)
 
 ## 📋 Funcionalidades Implementadas (EP-2)
@@ -48,7 +58,7 @@
 
 ## 🔧 Como Executar para Avaliação
 
-### Opção 1: Scripts PowerShell (Recomendado)
+### Opção 1A: Windows (PowerShell)
 ```powershell
 # Compilar e executar servidor
 .\scripts\compilar.ps1
@@ -58,7 +68,20 @@
 .\scripts\cliente.ps1
 ```
 
-### Opção 2: Maven Direto
+### Opção 1B: Linux/macOS (Bash)
+```bash
+# Dar permissão e compilar
+chmod +x scripts/*.sh
+./scripts/compilar.sh
+
+# Servidor (Terminal 1)
+./scripts/servidor.sh
+
+# Cliente (Terminal 2)
+./scripts/cliente.sh
+```
+
+### Opção 2: Maven Direto (Multiplataforma)
 ```bash
 # Compilar
 mvn clean compile package
@@ -102,10 +125,27 @@ src/main/java/validador/          # Sistema de validação rigorosa
 ### Scripts de Execução
 ```
 scripts/
-├── compilar.ps1                 # Compilação Maven
-├── servidor.ps1                 # Execução do servidor
-├── cliente.ps1                  # Execução do cliente
-└── sistema.ps1                  # Menu interativo
+├── compilar.ps1                 # Compilação Maven (Windows)
+├── servidor.ps1                 # Execução do servidor (Windows)
+├── cliente.ps1                  # Execução do cliente (Windows)
+├── sistema.ps1                  # Menu interativo (Windows)
+├── compilar.sh                  # Compilação Maven (Linux/macOS)
+├── servidor.sh                  # Execução do servidor (Linux/macOS)
+└── cliente.sh                   # Execução do cliente (Linux/macOS)
+```
+
+**Nota para Linux/macOS**: Se os scripts .sh não existirem, você pode criá-los ou usar diretamente os comandos Maven:
+
+```bash
+# Substituir scripts por comandos diretos
+# Compilar:
+mvn clean compile package
+
+# Servidor:
+java -jar target/validador-sistemas-distribuidos-1.0.0.jar
+
+# Cliente:
+java -Dserver.host=localhost -Dserver.port=20000 -cp target/validador-sistemas-distribuidos-1.0.0.jar com.distribuidos.client.ClientMain
 ```
 
 ## 🔗 Conectar e Testar
