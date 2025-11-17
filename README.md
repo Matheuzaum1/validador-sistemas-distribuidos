@@ -131,21 +131,8 @@ scripts/
 ├── sistema.ps1                  # Menu interativo (Windows)
 ├── compilar.sh                  # Compilação Maven (Linux/macOS)
 ├── servidor.sh                  # Execução do servidor (Linux/macOS)
-└── cliente.sh                   # Execução do cliente (Linux/macOS)
-```
-
-**Nota para Linux/macOS**: Se os scripts .sh não existirem, você pode criá-los ou usar diretamente os comandos Maven:
-
-```bash
-# Substituir scripts por comandos diretos
-# Compilar:
-mvn clean compile package
-
-# Servidor:
-java -jar target/validador-sistemas-distribuidos-1.0.0.jar
-
-# Cliente:
-java -Dserver.host=localhost -Dserver.port=20000 -cp target/validador-sistemas-distribuidos-1.0.0.jar com.distribuidos.client.ClientMain
+├── cliente.sh                   # Execução do cliente (Linux/macOS)
+└── sistema.sh                   # Menu interativo (Linux/macOS)
 ```
 
 ## 🔗 Conectar e Testar
