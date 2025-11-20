@@ -84,19 +84,31 @@ public class GlobalExceptionHandler {
             "{\"status\": false, \"codigo\": \"%s\", \"mensagem\": \"%s\", \"detalhes\": \"%s\"}",
             code.getCode(),
             code.getMessage(),
-            sanitizeMessage(message)
+            sanitizeForJson(message)
         );
     }
 
     /**
-     * Sanitiza mensagem para JSON.
+     * Sanitiza mensagem para JSON, convertendo quebras de linha em escapes.
      */
-    private static String sanitizeMessage(String message) {
+    private static String sanitizeForJson(String message) {
         if (message == null) return "";
         return message
             .replace("\"", "\\\"")
             .replace("\n", "\\n")
             .replace("\r", "\\r");
+    }
+
+    /**
+     * Sanitiza mensagem para logs, mantendo quebras de linha mas removendo caracteres problemáticos.
+     */
+    private static String sanitizeForLog(String message) {
+        if (message == null) return "";
+        return message
+            .replace("\r\n", " | ")  // Windows line endings
+            .replace("\n", " | ")    // Unix line endings  
+            .replace("\r", " | ")    // Mac line endings
+            .replace("\t", " ");     // Tabs
     }
 
     /**

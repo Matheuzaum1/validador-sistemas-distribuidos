@@ -619,9 +619,22 @@ public class ServerGUI extends JFrame {
         SwingUtilities.invokeLater(() -> {
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
             String timestamp = sdf.format(new Date());
-            logArea.append("[" + timestamp + "] " + message + "\n");
+            // Sanitiza a mensagem para exibição na GUI, convertendo escapes de quebra de linha
+            String cleanMessage = sanitizeForDisplay(message);
+            logArea.append("[" + timestamp + "] " + cleanMessage + "\n");
             logArea.setCaretPosition(logArea.getDocument().getLength());
         });
+    }
+    
+    /**
+     * Sanitiza mensagem para exibição na GUI, convertendo escapes de quebra de linha.
+     */
+    private String sanitizeForDisplay(String message) {
+        if (message == null) return "";
+        return message
+            .replace("\\n", " | ")  // Converte \n literal em separador
+            .replace("\\r", " | ")  // Converte \r literal em separador
+            .replace("\\t", " ");   // Converte \t literal em espaço
     }
     
     public void updateConnectedClients() {

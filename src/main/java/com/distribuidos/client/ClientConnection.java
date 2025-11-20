@@ -271,14 +271,28 @@ public class ClientConnection {
                             logger.error(errorMsg);
                             clientGUI.addLogMessage("❌ " + errorMsg);
                             
-                            // Enviar erro_servidor ao servidor
+                            // Enviar erro_servidor ao servidor e aguardar confirmação
                             try {
                                 String erroMsg = MessageBuilder.buildServerErrorMessage(
                                     "usuario_login",
                                     "Resposta usuario_login chegou sem campo 'token' ou token é nulo"
                                 );
+                                // Validação e envio direto
+                                Validator.validateClient(erroMsg);
                                 out.println(erroMsg);
-                                clientGUI.addLogMessage("📤 Erro_servidor enviado: " + erroMsg);
+                                out.flush(); // Garantir que foi enviado
+                                
+                                // Log no mesmo formato das outras mensagens
+                                clientGUI.addLogMessage("Enviado: " + erroMsg);
+                                
+                                // Aguardar resposta do servidor para confirmar recebimento
+                                String confirmacao = in.readLine();
+                                clientGUI.addLogMessage("Recebido: " + confirmacao);
+                                logger.info("Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                                
+                                // Pequena pausa para garantir processamento
+                                Thread.sleep(100);
+                                
                             } catch (Exception ex) {
                                 logger.error("Erro ao enviar erro_servidor", ex);
                             }
@@ -292,14 +306,28 @@ public class ClientConnection {
                             logger.error(errorMsg);
                             clientGUI.addLogMessage("❌ " + errorMsg);
                             
-                            // Enviar erro_servidor ao servidor
+                            // Enviar erro_servidor ao servidor e aguardar confirmação
                             try {
                                 String erroMsg = MessageBuilder.buildServerErrorMessage(
                                     "usuario_ler",
                                     "Resposta usuario_ler chegou sem campo 'usuario' ou usuario é nulo"
                                 );
+                                // Validação e envio direto
+                                Validator.validateClient(erroMsg);
                                 out.println(erroMsg);
-                                clientGUI.addLogMessage("📤 Erro_servidor enviado: " + erroMsg);
+                                out.flush(); // Garantir que foi enviado
+                                
+                                // Log no mesmo formato das outras mensagens
+                                clientGUI.addLogMessage("Enviado: " + erroMsg);
+                                
+                                // Aguardar resposta do servidor para confirmar recebimento
+                                String confirmacao = in.readLine();
+                                clientGUI.addLogMessage("Recebido: " + confirmacao);
+                                logger.info("Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                                
+                                // Pequena pausa para garantir processamento
+                                Thread.sleep(100);
+                                
                             } catch (Exception ex) {
                                 logger.error("Erro ao enviar erro_servidor", ex);
                             }
@@ -313,14 +341,28 @@ public class ClientConnection {
                             logger.error(errorMsg);
                             clientGUI.addLogMessage("❌ " + errorMsg);
                             
-                            // Enviar erro_servidor ao servidor
+                            // Enviar erro_servidor ao servidor e aguardar confirmação
                             try {
                                 String erroMsg = MessageBuilder.buildServerErrorMessage(
                                     "transacao_ler",
                                     "Resposta transacao_ler chegou sem campo 'transacoes' ou transacoes é nulo"
                                 );
+                                // Validação e envio direto
+                                Validator.validateClient(erroMsg);
                                 out.println(erroMsg);
-                                clientGUI.addLogMessage("📤 Erro_servidor enviado: " + erroMsg);
+                                out.flush(); // Garantir que foi enviado
+                                
+                                // Log no mesmo formato das outras mensagens
+                                clientGUI.addLogMessage("Enviado: " + erroMsg);
+                                
+                                // Aguardar resposta do servidor para confirmar recebimento
+                                String confirmacao = in.readLine();
+                                clientGUI.addLogMessage("Recebido: " + confirmacao);
+                                logger.info("Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                                
+                                // Pequena pausa para garantir processamento
+                                Thread.sleep(100);
+                                
                             } catch (Exception ex) {
                                 logger.error("Erro ao enviar erro_servidor", ex);
                             }

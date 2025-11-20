@@ -12,13 +12,17 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ServerHandler extends Thread {
     private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
+    
+    // Contador estático para estatísticas de erros reportados pelos clientes
+    private static final AtomicInteger errorReportsCount = new AtomicInteger(0);
+    
     // Executor to perform reverse DNS lookups asynchronously to avoid blocking the handler thread
     private static final ExecutorService DNS_RESOLVER = Executors.newCachedThreadPool();
     private final Socket clientSocket;
@@ -155,6 +159,8 @@ public class ServerHandler extends Thread {
                     return handleTransacaoLer(message);
                 case "conectar":
                     return handleConnect(message);
+                case "erro_servidor":
+                    return handleErrorReport(message);
                 default:
                     return MessageBuilder.buildErrorResponse(operation, "Operação não suportada");
             }
@@ -493,5 +499,61 @@ public class ServerHandler extends Thread {
         } catch (IOException e) {
             logger.error("Erro ao limpar recursos do cliente", e);
         }
+    }
+    
+    /**
+     * Trata relatórios de erro enviados pelo cliente (operacao erro_servidor).
+     * Conforme seção 4.11 do protocolo: cliente reporta erros do servidor.
+     */
+    private String handleErrorReport(String message) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
+            
+            String operacaoEnviada = node.get("operacao_enviada").asText();
+            String info = node.get("info").asText();
+            
+            // Incrementa contador de erros reportados
+            int totalErrors = errorReportsCount.incrementAndGet();
+            
+            // Log do erro reportado pelo cliente
+            String clientIdentification = getClientIdentification();
+            logger.warn("🚨 ERRO REPORTADO PELO CLIENTE [{}]: Operação '{}' - {} (Total de erros reportados: {})", 
+                clientIdentification, operacaoEnviada, info, totalErrors);
+            
+            // Adiciona o erro no log da GUI do servidor
+            if (serverGUI != null) {
+                String logMessage = String.format("🚨 Cliente %s reportou erro na operação '%s': %s", 
+                    clientIdentification, operacaoEnviada, info);
+                serverGUI.addLogMessage(logMessage);
+            }
+            
+            // Resposta de confirmação ao cliente
+            return MessageBuilder.buildSuccessResponse("erro_servidor", 
+                "Erro reportado e registrado com sucesso");
+                
+        } catch (Exception e) {
+            logger.error("Erro ao processar relatório de erro do cliente", e);
+            return MessageBuilder.buildErrorResponse("erro_servidor", 
+                "Erro ao processar relatório de erro");
+        }
+    }
+    
+    /**
+     * Obtém identificação do cliente para logs.
+     */
+    private String getClientIdentification() {
+        if (clientInfo != null) {
+            return String.format("%s:%d", clientInfo.getIp(), clientInfo.getPorta());
+        }
+        return clientSocket != null ? 
+            clientSocket.getRemoteSocketAddress().toString() : "Unknown";
+    }
+    
+    /**
+     * Retorna o número total de erros reportados pelos clientes.
+     */
+    public static int getTotalErrorReports() {
+        return errorReportsCount.get();
     }
 }

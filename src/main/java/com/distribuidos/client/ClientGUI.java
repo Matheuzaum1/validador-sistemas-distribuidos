@@ -130,7 +130,7 @@ public class ClientGUI extends JFrame {
                     } else {
                         addLogMessage("✗ Falha na conexão!");
                         JOptionPane.showMessageDialog(this,
-                            "Não foi possível conectar ao servidor.\\nVerifique se o servidor está rodando e tente novamente.",
+                            "Não foi possível conectar ao servidor.\nVerifique se o servidor está rodando e tente novamente.",
                             "Erro de Conexão", JOptionPane.ERROR_MESSAGE);
                         System.exit(0);
                     }
@@ -514,7 +514,7 @@ public class ClientGUI extends JFrame {
                 JsonNode node = mapper.readTree(response);
                 JsonNode usuario = node.get("usuario");
                 
-                String info = String.format("CPF: %s\\nNome: %s\\nSaldo: R$ %.2f",
+                String info = String.format("CPF: %s\nNome: %s\nSaldo: R$ %.2f",
                     usuario.get("cpf").asText(),
                     usuario.get("nome").asText(),
                     usuario.get("saldo").asDouble());
@@ -584,7 +584,7 @@ public class ClientGUI extends JFrame {
         }
         
         int confirm = JOptionPane.showConfirmDialog(this,
-            "Tem certeza que deseja deletar sua conta?\\nEsta ação NÃO pode ser desfeita!",
+            "Tem certeza que deseja deletar sua conta?\nEsta ação NÃO pode ser desfeita!",
             "Confirmar Exclusão", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         
         if (confirm != JOptionPane.YES_OPTION) return;
@@ -997,8 +997,21 @@ public class ClientGUI extends JFrame {
         SwingUtilities.invokeLater(() -> {
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
             String timestamp = sdf.format(new Date());
-            logArea.append("[" + timestamp + "] " + message + "\\n");
+            // Sanitiza a mensagem para exibição na GUI, convertendo escapes de quebra de linha
+            String cleanMessage = sanitizeForDisplay(message);
+            logArea.append("[" + timestamp + "] " + cleanMessage + "\n");
             logArea.setCaretPosition(logArea.getDocument().getLength());
         });
+    }
+    
+    /**
+     * Sanitiza mensagem para exibição na GUI, convertendo escapes de quebra de linha.
+     */
+    private String sanitizeForDisplay(String message) {
+        if (message == null) return "";
+        return message
+            .replace("\\n", " | ")  // Converte \n literal em separador
+            .replace("\\r", " | ")  // Converte \r literal em separador
+            .replace("\\t", " ");   // Converte \t literal em espaço
     }
 }
