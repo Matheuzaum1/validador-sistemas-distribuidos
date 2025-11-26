@@ -252,15 +252,76 @@ public class ClientConnection {
             com.fasterxml.jackson.databind.JsonNode responseNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response);
             
             if (!responseNode.has("operacao") || responseNode.get("operacao").isNull()) {
-                logger.error("🔴 PROTOCOLO VIOLATION: operacao nula recebida. Encerrando conexão.");
-                clientGUI.addLogMessage("❌ ERRO PROTOCOLO: operacao nula recebida - desconectando");
-                disconnect();
-                throw new RuntimeException("PROTOCOLO VIOLATION: operacao nula na resposta do servidor (seção 5.2)");
+                String errorMsg = "🔴 PROTOCOLO VIOLATION: operacao nula/ausente recebida (seção 4.11)";
+                logger.error(errorMsg);
+                clientGUI.addLogMessage("❌ " + errorMsg);
+                
+                // Enviar erro_servidor ao servidor conforme seção 4.11
+                try {
+                    String erroMsg = MessageBuilder.buildServerErrorMessage(
+                        null, // operacao_enviada deve ser null quando operacao está ausente/nula
+                        "O campo 'operacao' estava ausente ou nulo na resposta do servidor"
+                    );
+                    // Validação e envio direto
+                    Validator.validateClient(erroMsg);
+                    out.println(erroMsg);
+                    out.flush(); // Garantir que foi enviado
+                    
+                    // Log no mesmo formato das outras mensagens
+                    clientGUI.addLogMessage("Enviado: " + erroMsg);
+                    
+                    // Aguardar resposta do servidor para confirmar recebimento
+                    String confirmacao = in.readLine();
+                    clientGUI.addLogMessage("Recebido: " + confirmacao);
+                    logger.info("Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                    
+                } catch (Exception ex) {
+                    logger.error("Erro ao enviar erro_servidor", ex);
+                }
+                throw new RuntimeException(errorMsg);
             }
             
             // Validar campos específicos conforme seção 4.11
             String operacao = responseNode.get("operacao").asText();
             boolean status = responseNode.get("status").asBoolean();
+            
+            // ========== VALIDAÇÃO PARA status: false (Reportar erros do servidor) ==========
+            if (!status) {
+                // Quando servidor envia status: false, cliente deve reportar erro_servidor
+                String errorInfo = responseNode.has("info") ? responseNode.get("info").asText() : "Erro não especificado";
+                String errorMsg = "🔴 SERVIDOR ERROR: " + operacao + " retornou status:false - " + errorInfo;
+                logger.warn("Servidor retornou erro para {}: {}", operacao, errorInfo);
+                clientGUI.addLogMessage("⚠ " + errorMsg);
+                
+                // Enviar erro_servidor ao servidor conforme seção 4.11
+                try {
+                    String erroMsg = MessageBuilder.buildServerErrorMessage(
+                        operacao,
+                        "Servidor retornou status:false para operação " + operacao + ": " + errorInfo
+                    );
+                    // Validação e envio direto
+                    Validator.validateClient(erroMsg);
+                    out.println(erroMsg);
+                    out.flush(); // Garantir que foi enviado
+                    
+                    // Log no mesmo formato das outras mensagens
+                    clientGUI.addLogMessage("Enviado: " + erroMsg);
+                    
+                    // Aguardar resposta do servidor para confirmar recebimento
+                    String confirmacao = in.readLine();
+                    clientGUI.addLogMessage("Recebido: " + confirmacao);
+                    logger.info("Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                    
+                    // Pequena pausa para garantir processamento
+                    Thread.sleep(100);
+                    
+                } catch (Exception ex) {
+                    logger.error("Erro ao enviar erro_servidor para status:false", ex);
+                }
+                
+                // Retornar a resposta original para que o cliente possa tratá-la normalmente
+                return response;
+            }
             
             if (status) {
                 // Validar campos obrigatórios por tipo de operação
@@ -389,14 +450,7 @@ public class ClientConnection {
 
             String lower = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
             if (lower.contains("token") || lower.contains("campo 'token'") || lower.contains("campo \"token\"") ) {
-                // Show a user-friendly dialog and return an error JSON indicating invalid token
-                javax.swing.SwingUtilities.invokeLater(() -> {
-                    javax.swing.JOptionPane.showMessageDialog(null,
-                        "Token inválido — por favor reconecte ou efetue login novamente.",
-                        "Token inválido",
-                        javax.swing.JOptionPane.WARNING_MESSAGE);
-                });
-
+                // Return an error JSON for token issues, let the GUI handle the user notification
                 return com.distribuidos.common.MessageBuilder.buildErrorResponse("validation_error",
                     "Token inválido - reconecte ou faça login novamente");
             }

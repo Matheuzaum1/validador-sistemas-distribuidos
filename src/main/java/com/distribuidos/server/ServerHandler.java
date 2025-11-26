@@ -119,24 +119,66 @@ public class ServerHandler extends Thread {
     
     private String processMessage(String message) {
         try {
-            String operation = MessageBuilder.extractOperation(message);
-            
-            // ========== NOVA VALIDAÇÃO: Protocolo v1.5 (5.2) ==========
-            // Verificar se "operacao" é nulo ou vazio - conforme seção 5.2
-            if (operation == null || operation.trim().isEmpty()) {
-                logger.error("🔴 PROTOCOLO VIOLATION: operacao nula ou vazia. Encerrando conexão.");
-                serverGUI.addLogMessage("❌ Cliente enviou operacao nula - encerrando conexão");
-                // Enviar null ou encerrar conforme protocolo
-                clientSocket.close();
+            // ========== PROTOCOLO 5.2: Verificar se operacao existe ==========
+            String operation;
+            try {
+                operation = MessageBuilder.extractOperation(message);
+            } catch (Exception e) {
+                // Se não conseguir extrair a operação, significa que o campo não existe ou é inválido
+                logger.error("🔴 PROTOCOLO 5.2: Cliente enviou mensagem sem operacao válida. Encerrando conexão.");
+                if (serverGUI != null) {
+                    serverGUI.addLogMessage("❌ Cliente " + clientInfo.getIp() + " enviou mensagem sem operacao - encerrando conexão");
+                }
+                // Protocolo 5.2: servidor deve retornar null para encerrar conexão
+                out.println("null");
                 return null;
             }
-            // ============================================================
             
-            // Verifica se a primeira operação é 'conectar'
+            // Verificar se operacao é válida (não nula ou vazia)
+            if (operation == null || operation.trim().isEmpty()) {
+                logger.error("🔴 PROTOCOLO 5.2: operacao nula ou vazia. Encerrando conexão.");
+                if (serverGUI != null) {
+                    serverGUI.addLogMessage("❌ Cliente " + clientInfo.getIp() + " enviou operacao nula - encerrando conexão");
+                }
+                // Protocolo 5.2: servidor deve retornar null para encerrar conexão
+                out.println("null");
+                return null;
+            }
+            
+            // Verificar se a operação existe no protocolo
+            boolean operationExists = false;
+            String[] validOperations = {"conectar", "usuario_login", "usuario_logout", "usuario_criar", 
+                                       "usuario_ler", "usuario_atualizar", "usuario_deletar", 
+                                       "transacao_criar", "transacao_ler", "depositar", "erro_servidor"};
+            for (String validOp : validOperations) {
+                if (validOp.equals(operation)) {
+                    operationExists = true;
+                    break;
+                }
+            }
+            
+            if (!operationExists) {
+                logger.error("🔴 PROTOCOLO 5.2: operacao '{}' não existe no protocolo. Encerrando conexão.", operation);
+                if (serverGUI != null) {
+                    serverGUI.addLogMessage("❌ Cliente " + clientInfo.getIp() + " enviou operacao inválida '" + operation + "' - encerrando conexão");
+                }
+                // Protocolo 5.2: servidor deve retornar null para encerrar conexão
+                out.println("null");
+                return null;
+            }
+            // ================================================================
+            
+            // ========== PROTOCOLO 5.3: Verificar primeira operação ==========
             if (isFirstOperation && !"conectar".equals(operation)) {
+                isFirstOperation = false; // Marca que já recebeu a primeira operação
                 return MessageBuilder.buildErrorResponse(operation, 
                     "Erro, para receber uma operacao, a primeira operacao deve ser 'conectar'");
             }
+            
+            if (isFirstOperation && "conectar".equals(operation)) {
+                isFirstOperation = false; // Marca que recebeu conectar corretamente
+            }
+            // ================================================================
             
             switch (operation) {
                 case "usuario_login":
@@ -510,7 +552,12 @@ public class ServerHandler extends Thread {
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
             
-            String operacaoEnviada = node.get("operacao_enviada").asText();
+            // Conforme protocolo 4.11, operacao_enviada pode ser null se operacao estava ausente/nula
+            String operacaoEnviada = "null";
+            if (node.has("operacao_enviada") && !node.get("operacao_enviada").isNull()) {
+                operacaoEnviada = node.get("operacao_enviada").asText();
+            }
+            
             String info = node.get("info").asText();
             
             // Incrementa contador de erros reportados

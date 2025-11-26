@@ -267,11 +267,14 @@ public class ClientGUI extends JFrame {
                 cardLayout.show(mainContainer, CARD_MAIN);
                 updateMainPanelUI();
             } else {
+                String errorMsg = MessageBuilder.extractInfo(response);
+                addLogMessage("✗ Falha no login automático: " + errorMsg);
                 ToastNotification.showError("Login", "Conta criada, mas falha no login automático. Por favor, faça login manualmente.");
             }
         } catch (Exception e) {
             logger.error("Erro no login automático", e);
-            ToastNotification.showError("Erro", "Conta criada, mas erro no login automático.");
+            addLogMessage("✗ Erro no login automático: " + e.getMessage());
+            ToastNotification.showError("Aviso", "Conta criada com sucesso. Por favor, faça login manualmente.");
         }
     }
     

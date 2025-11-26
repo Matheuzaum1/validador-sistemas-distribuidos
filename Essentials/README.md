@@ -432,8 +432,8 @@ O Usuário pediu as transações do dia 1 de janeiro a 1 de maio, o servidor dev
         "nome": "Yan Jardim Leal",
         "cpf": "098.765.432-11"
       },
-      "criado_em": "2025-08-02T00:00:00Z",
-      "atualizado_em": "2025-08-02T00:00:00Z"
+      criado_em: "2025-08-02T00:00:00Z",
+      atualizado_em: "2025-08-02T00:00:00Z"
     }
   ]
 }
