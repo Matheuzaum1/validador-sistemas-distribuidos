@@ -12,12 +12,15 @@ C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\d
 C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\newpix\client\gui\ClientGUI.java
 C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\client\MoneyFormatter.java
 C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\ApplicationException.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\test\ErrorReportTestRunner.java
 C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\ServerErrorInjector.java
 C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\ToastNotification.java
 C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\Transacao.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\tools\ServerResponseInjector.java
 C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\client\ClientGUI.java
 C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\common\TokenManager.java
 C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\ValidationException.java
+C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\test\ErrorReportingTest.java
 C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\newpix\server\NewPixServer.java
 C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\exception\DatabaseException.java
 C:\Users\matheusrm\Documents\validador-sistemas-distribuidos\src\main\java\com\distribuidos\server\ServerMain.java

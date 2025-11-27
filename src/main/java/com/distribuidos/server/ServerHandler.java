@@ -563,24 +563,31 @@ public class ServerHandler extends Thread {
             // Incrementa contador de erros reportados
             int totalErrors = errorReportsCount.incrementAndGet();
             
-            // Log do erro reportado pelo cliente
+            // Log do erro reportado pelo cliente - MOSTRAR JSON COMPLETO
             String clientIdentification = getClientIdentification();
-            logger.warn("🚨 ERRO REPORTADO PELO CLIENTE [{}]: Operação '{}' - {} (Total de erros reportados: {})", 
-                clientIdentification, operacaoEnviada, info, totalErrors);
+            logger.warn("🚨 ERRO REPORTADO PELO CLIENTE [{}]: JSON completo: {}", clientIdentification, message);
+            logger.warn("🚨 Operação: '{}' | Info: {} | Total de erros: {}", operacaoEnviada, info, totalErrors);
             
-            // Adiciona o erro no log da GUI do servidor
+            // Adiciona o erro no log da GUI do servidor - MOSTRAR JSON COMPLETO
             if (serverGUI != null) {
-                String logMessage = String.format("🚨 Cliente %s reportou erro na operação '%s': %s", 
-                    clientIdentification, operacaoEnviada, info);
-                serverGUI.addLogMessage(logMessage);
+                serverGUI.addLogMessage("=== ERRO_SERVIDOR RECEBIDO ===");
+                serverGUI.addLogMessage("🚨 Cliente: " + clientIdentification);
+                serverGUI.addLogMessage("📄 JSON completo: " + message);
+                serverGUI.addLogMessage("⚠ Operação com erro: " + operacaoEnviada);
+                serverGUI.addLogMessage("💬 Descrição: " + info);
+                serverGUI.addLogMessage("📊 Total de erros reportados: " + totalErrors);
+                serverGUI.addLogMessage("================================");
             }
             
             // Resposta de confirmação ao cliente
             return MessageBuilder.buildSuccessResponse("erro_servidor", 
-                "Erro reportado e registrado com sucesso");
+                "Erro reportado e registrado com sucesso. Total de erros: " + totalErrors);
                 
         } catch (Exception e) {
             logger.error("Erro ao processar relatório de erro do cliente", e);
+            if (serverGUI != null) {
+                serverGUI.addLogMessage("❌ Erro ao processar erro_servidor: " + e.getMessage());
+            }
             return MessageBuilder.buildErrorResponse("erro_servidor", 
                 "Erro ao processar relatório de erro");
         }

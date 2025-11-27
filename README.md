@@ -28,12 +28,40 @@ chmod +x scripts/*.sh
 ./scripts/cliente.sh     # Terminal 2
 ```
 
-## ⚙️ Requisitos do Sistema
+## 🚨 Sistema de Relatório de Erros (Protocolo 4.11)
 
-- **Java 17+** (testado com Java 25)
-- **Maven 3.6+**
-- **SO Suportados**: Windows, Linux, macOS
-- **Porta 20000** disponível (configurável)
+O sistema implementa **completamente** o protocolo 4.11 para relatório de erros do servidor:
+
+### ✅ Como Funciona
+1. **Cliente detecta erro no servidor** (campo ausente, nulo, status:false)
+2. **Cliente envia mensagem `erro_servidor`** automaticamente  
+3. **Servidor registra o erro** nos logs com JSON completo
+4. **Cliente exibe pop-up** informando sobre o problema
+5. **Logs mostram** tanto o JSON enviado quanto a confirmação
+
+### ✅ Cenários de Erro Detectados
+- **Operação null/ausente** na resposta
+- **Token null/ausente** em login bem-sucedido  
+- **Usuario null** em usuario_ler bem-sucedido
+- **Transacoes null** em transacao_ler bem-sucedido
+- **Status false** em qualquer operação
+
+### 📋 Logs de Exemplo
+```
+❌ 🔴 PROTOCOLO VIOLATION: usuario_login sem token (seção 4.11)
+📄 JSON recebido: {"operacao":"usuario_login","status":true,"info":"Login realizado","token":null}
+📤 ERRO_SERVIDOR enviado: {"operacao":"erro_servidor","operacao_enviada":"usuario_login","info":"Resposta usuario_login chegou sem campo 'token' ou token é nulo"}
+📥 ERRO_SERVIDOR confirmado: {"operacao":"erro_servidor","status":true,"info":"Erro reportado e registrado com sucesso"}
+```
+
+### 🧪 Testando Erros
+```bash
+# Teste automatizado
+java -cp target/classes com.distribuidos.tools.ServerResponseInjector
+
+# Interface gráfica para testes
+java -cp target/classes com.distribuidos.test.ErrorReportTestRunner
+```
 
 ## 📋 Funcionalidades Implementadas (EP-2)
 

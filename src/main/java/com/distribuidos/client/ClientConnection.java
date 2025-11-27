@@ -255,6 +255,19 @@ public class ClientConnection {
                 String errorMsg = "🔴 PROTOCOLO VIOLATION: operacao nula/ausente recebida (seção 4.11)";
                 logger.error(errorMsg);
                 clientGUI.addLogMessage("❌ " + errorMsg);
+                clientGUI.addLogMessage("📄 JSON recebido: " + response);
+                
+                // Mostrar pop-up de erro crítico
+                if (clientGUI != null) {
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        javax.swing.JOptionPane.showMessageDialog(
+                            clientGUI,
+                            "ERRO CRÍTICO DE PROTOCOLO:\nO servidor enviou uma resposta sem campo 'operacao' válido.\n\nJSON recebido: " + response,
+                            "Violação de Protocolo",
+                            javax.swing.JOptionPane.ERROR_MESSAGE
+                        );
+                    });
+                }
                 
                 // Enviar erro_servidor ao servidor conforme seção 4.11
                 try {
@@ -267,16 +280,20 @@ public class ClientConnection {
                     out.println(erroMsg);
                     out.flush(); // Garantir que foi enviado
                     
-                    // Log no mesmo formato das outras mensagens
-                    clientGUI.addLogMessage("Enviado: " + erroMsg);
+                    // Log no mesmo formato das outras mensagens - MOSTRAR JSON COMPLETO
+                    clientGUI.addLogMessage("📤 ERRO_SERVIDOR enviado: " + erroMsg);
+                    logger.info("📤 Enviando erro_servidor: {}", erroMsg);
                     
                     // Aguardar resposta do servidor para confirmar recebimento
                     String confirmacao = in.readLine();
-                    clientGUI.addLogMessage("Recebido: " + confirmacao);
-                    logger.info("Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                    if (confirmacao != null) {
+                        clientGUI.addLogMessage("📥 ERRO_SERVIDOR confirmado: " + confirmacao);
+                        logger.info("📥 Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                    }
                     
                 } catch (Exception ex) {
                     logger.error("Erro ao enviar erro_servidor", ex);
+                    clientGUI.addLogMessage("❌ Falha ao enviar erro_servidor: " + ex.getMessage());
                 }
                 throw new RuntimeException(errorMsg);
             }
@@ -293,6 +310,18 @@ public class ClientConnection {
                 logger.warn("Servidor retornou erro para {}: {}", operacao, errorInfo);
                 clientGUI.addLogMessage("⚠ " + errorMsg);
                 
+                // Mostrar pop-up de erro ao usuário
+                if (clientGUI != null) {
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        javax.swing.JOptionPane.showMessageDialog(
+                            clientGUI,
+                            "Erro do servidor na operação '" + operacao + "':\n" + errorInfo,
+                            "Erro do Servidor",
+                            javax.swing.JOptionPane.ERROR_MESSAGE
+                        );
+                    });
+                }
+                
                 // Enviar erro_servidor ao servidor conforme seção 4.11
                 try {
                     String erroMsg = MessageBuilder.buildServerErrorMessage(
@@ -304,19 +333,23 @@ public class ClientConnection {
                     out.println(erroMsg);
                     out.flush(); // Garantir que foi enviado
                     
-                    // Log no mesmo formato das outras mensagens
-                    clientGUI.addLogMessage("Enviado: " + erroMsg);
+                    // Log no mesmo formato das outras mensagens - MOSTRAR JSON COMPLETO
+                    clientGUI.addLogMessage("📤 ERRO_SERVIDOR enviado: " + erroMsg);
+                    logger.info("📤 Enviando erro_servidor: {}", erroMsg);
                     
                     // Aguardar resposta do servidor para confirmar recebimento
                     String confirmacao = in.readLine();
-                    clientGUI.addLogMessage("Recebido: " + confirmacao);
-                    logger.info("Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                    if (confirmacao != null) {
+                        clientGUI.addLogMessage("📥 ERRO_SERVIDOR confirmado: " + confirmacao);
+                        logger.info("📥 Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                    }
                     
                     // Pequena pausa para garantir processamento
                     Thread.sleep(100);
                     
                 } catch (Exception ex) {
                     logger.error("Erro ao enviar erro_servidor para status:false", ex);
+                    clientGUI.addLogMessage("❌ Falha ao enviar erro_servidor: " + ex.getMessage());
                 }
                 
                 // Retornar a resposta original para que o cliente possa tratá-la normalmente
@@ -331,6 +364,19 @@ public class ClientConnection {
                             String errorMsg = "🔴 PROTOCOLO VIOLATION: usuario_login sem token (seção 4.11)";
                             logger.error(errorMsg);
                             clientGUI.addLogMessage("❌ " + errorMsg);
+                            clientGUI.addLogMessage("📄 JSON recebido: " + response);
+                            
+                            // Mostrar pop-up de erro
+                            if (clientGUI != null) {
+                                javax.swing.SwingUtilities.invokeLater(() -> {
+                                    javax.swing.JOptionPane.showMessageDialog(
+                                        clientGUI,
+                                        "ERRO DE PROTOCOLO:\nLogin bem-sucedido mas servidor não retornou token.\n\nJSON recebido: " + response,
+                                        "Erro no Login",
+                                        javax.swing.JOptionPane.ERROR_MESSAGE
+                                    );
+                                });
+                            }
                             
                             // Enviar erro_servidor ao servidor e aguardar confirmação
                             try {
@@ -343,19 +389,23 @@ public class ClientConnection {
                                 out.println(erroMsg);
                                 out.flush(); // Garantir que foi enviado
                                 
-                                // Log no mesmo formato das outras mensagens
-                                clientGUI.addLogMessage("Enviado: " + erroMsg);
+                                // Log no mesmo formato das outras mensagens - MOSTRAR JSON COMPLETO
+                                clientGUI.addLogMessage("📤 ERRO_SERVIDOR enviado: " + erroMsg);
+                                logger.info("📤 Enviando erro_servidor: {}", erroMsg);
                                 
                                 // Aguardar resposta do servidor para confirmar recebimento
                                 String confirmacao = in.readLine();
-                                clientGUI.addLogMessage("Recebido: " + confirmacao);
-                                logger.info("Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                                if (confirmacao != null) {
+                                    clientGUI.addLogMessage("📥 ERRO_SERVIDOR confirmado: " + confirmacao);
+                                    logger.info("📥 Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                                }
                                 
                                 // Pequena pausa para garantir processamento
                                 Thread.sleep(100);
                                 
                             } catch (Exception ex) {
                                 logger.error("Erro ao enviar erro_servidor", ex);
+                                clientGUI.addLogMessage("❌ Falha ao enviar erro_servidor: " + ex.getMessage());
                             }
                             throw new RuntimeException(errorMsg);
                         }
@@ -366,6 +416,19 @@ public class ClientConnection {
                             String errorMsg = "🔴 PROTOCOLO VIOLATION: usuario_ler sem usuario (seção 4.11)";
                             logger.error(errorMsg);
                             clientGUI.addLogMessage("❌ " + errorMsg);
+                            clientGUI.addLogMessage("📄 JSON recebido: " + response);
+                            
+                            // Mostrar pop-up de erro
+                            if (clientGUI != null) {
+                                javax.swing.SwingUtilities.invokeLater(() -> {
+                                    javax.swing.JOptionPane.showMessageDialog(
+                                        clientGUI,
+                                        "ERRO DE PROTOCOLO:\nLeitura de usuário bem-sucedida mas dados do usuário são nulos.\n\nJSON recebido: " + response,
+                                        "Erro na Leitura do Usuário",
+                                        javax.swing.JOptionPane.ERROR_MESSAGE
+                                    );
+                                });
+                            }
                             
                             // Enviar erro_servidor ao servidor e aguardar confirmação
                             try {
@@ -378,19 +441,23 @@ public class ClientConnection {
                                 out.println(erroMsg);
                                 out.flush(); // Garantir que foi enviado
                                 
-                                // Log no mesmo formato das outras mensagens
-                                clientGUI.addLogMessage("Enviado: " + erroMsg);
+                                // Log no mesmo formato das outras mensagens - MOSTRAR JSON COMPLETO
+                                clientGUI.addLogMessage("📤 ERRO_SERVIDOR enviado: " + erroMsg);
+                                logger.info("📤 Enviando erro_servidor: {}", erroMsg);
                                 
                                 // Aguardar resposta do servidor para confirmar recebimento
                                 String confirmacao = in.readLine();
-                                clientGUI.addLogMessage("Recebido: " + confirmacao);
-                                logger.info("Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                                if (confirmacao != null) {
+                                    clientGUI.addLogMessage("📥 ERRO_SERVIDOR confirmado: " + confirmacao);
+                                    logger.info("📥 Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                                }
                                 
                                 // Pequena pausa para garantir processamento
                                 Thread.sleep(100);
                                 
                             } catch (Exception ex) {
                                 logger.error("Erro ao enviar erro_servidor", ex);
+                                clientGUI.addLogMessage("❌ Falha ao enviar erro_servidor: " + ex.getMessage());
                             }
                             throw new RuntimeException(errorMsg);
                         }
@@ -401,6 +468,19 @@ public class ClientConnection {
                             String errorMsg = "🔴 PROTOCOLO VIOLATION: transacao_ler sem transacoes (seção 4.11)";
                             logger.error(errorMsg);
                             clientGUI.addLogMessage("❌ " + errorMsg);
+                            clientGUI.addLogMessage("📄 JSON recebido: " + response);
+                            
+                            // Mostrar pop-up de erro
+                            if (clientGUI != null) {
+                                javax.swing.SwingUtilities.invokeLater(() -> {
+                                    javax.swing.JOptionPane.showMessageDialog(
+                                        clientGUI,
+                                        "ERRO DE PROTOCOLO:\nLeitura de transações bem-sucedida mas lista de transações é nula.\n\nJSON recebido: " + response,
+                                        "Erro na Leitura de Transações",
+                                        javax.swing.JOptionPane.ERROR_MESSAGE
+                                    );
+                                });
+                            }
                             
                             // Enviar erro_servidor ao servidor e aguardar confirmação
                             try {
@@ -413,19 +493,23 @@ public class ClientConnection {
                                 out.println(erroMsg);
                                 out.flush(); // Garantir que foi enviado
                                 
-                                // Log no mesmo formato das outras mensagens
-                                clientGUI.addLogMessage("Enviado: " + erroMsg);
+                                // Log no mesmo formato das outras mensagens - MOSTRAR JSON COMPLETO
+                                clientGUI.addLogMessage("📤 ERRO_SERVIDOR enviado: " + erroMsg);
+                                logger.info("📤 Enviando erro_servidor: {}", erroMsg);
                                 
                                 // Aguardar resposta do servidor para confirmar recebimento
                                 String confirmacao = in.readLine();
-                                clientGUI.addLogMessage("Recebido: " + confirmacao);
-                                logger.info("Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                                if (confirmacao != null) {
+                                    clientGUI.addLogMessage("📥 ERRO_SERVIDOR confirmado: " + confirmacao);
+                                    logger.info("📥 Erro_servidor confirmado pelo servidor: {}", confirmacao);
+                                }
                                 
                                 // Pequena pausa para garantir processamento
                                 Thread.sleep(100);
                                 
                             } catch (Exception ex) {
                                 logger.error("Erro ao enviar erro_servidor", ex);
+                                clientGUI.addLogMessage("❌ Falha ao enviar erro_servidor: " + ex.getMessage());
                             }
                             throw new RuntimeException(errorMsg);
                         }

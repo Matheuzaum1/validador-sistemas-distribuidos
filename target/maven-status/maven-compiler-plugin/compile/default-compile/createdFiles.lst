@@ -15,11 +15,14 @@ com\distribuidos\common\Transacao.class
 com\distribuidos\common\ToastNotification$NotificationType.class
 com\newpix\client\gui\ClientGUI.class
 com\newpix\client\NewPixClient.class
+com\distribuidos\test\ErrorReportTestRunner$MockServer.class
 com\distribuidos\common\UIColors.class
+com\distribuidos\tools\ServerResponseInjector.class
 com\distribuidos\handler\GlobalExceptionHandler$1.class
 com\distribuidos\server\ServerGUI$2.class
 com\distribuidos\server\ServerGUI.class
 com\distribuidos\server\ServerGUI$6.class
+com\distribuidos\test\ErrorReportingTest.class
 com\distribuidos\util\RetryUtil.class
 com\distribuidos\exception\InsufficientBalanceException.class
 com\distribuidos\common\TokenManager.class
@@ -28,6 +31,7 @@ com\distribuidos\exception\ApplicationException.class
 com\distribuidos\exception\ValidationException.class
 com\distribuidos\tools\ServerErrorInjector$ErrorType.class
 validador\Validator$1.class
+com\distribuidos\test\ErrorReportTestRunner.class
 com\distribuidos\common\Usuario.class
 com\distribuidos\server\ServerGUI$3.class
 validador\Validator.class
@@ -50,6 +54,7 @@ com\distribuidos\tools\ClientTestRunner.class
 com\distribuidos\server\ServerGUI$7.class
 com\distribuidos\client\MoneyFormatter.class
 com\distribuidos\common\ValidationHelper$ValueValidator.class
+com\distribuidos\test\ErrorReportTestRunner$MockClientGUI.class
 com\distribuidos\tools\InProcessE2ETestRunner.class
 validador\RulesEnum.class
 com\distribuidos\handler\GlobalExceptionHandler.class
