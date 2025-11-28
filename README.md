@@ -9,7 +9,7 @@
 # Executar diretamente
 .\scripts\sistema.ps1
 
-# Ou compilar e executar separadamente
+# Ou compilar e executar sep aradamente
 .\scripts\compilar.ps1
 .\scripts\servidor.ps1    # Terminal 1
 .\scripts\cliente.ps1     # Terminal 2
@@ -61,7 +61,43 @@ java -cp target/classes com.distribuidos.tools.ServerResponseInjector
 
 # Interface gráfica para testes
 java -cp target/classes com.distribuidos.test.ErrorReportTestRunner
+
+# Error Injector - Proxy para injeção de erros em tempo real
+cd error-injector
+java -jar target/simple-error-injector-1.0.0.jar
 ```
+
+## 🔧 Error Injector - Proxy de Teste
+
+O projeto inclui um **Error Injector** - um proxy TCP que intercepta comunicações e injeta erros para testar o protocolo 4.11:
+
+### ✅ Características
+- **Interface Gráfica Simples**: GUI minimalista e intuitiva
+- **Proxy TCP Funcional**: Relay completo bidirecional
+- **Injeção de Erros**: Checkboxes para ativar/desativar erros
+- **Logs em Tempo Real**: Monitoramento de todas as mensagens
+
+### 🎯 Como Usar o Error Injector
+```bash
+# 1. Navegar para pasta
+cd error-injector
+
+# 2. Executar GUI
+java -jar target/simple-error-injector-1.0.0.jar
+
+# 3. Configurar na GUI:
+#    - Porta Proxy: 9999 (onde clientes conectam)
+#    - Host Servidor: localhost 
+#    - Porta Servidor: 8080 (servidor real)
+#    - Marcar checkboxes para injetar erros
+
+# 4. Conectar cliente na porta 9999 em vez de 8080
+```
+
+### 🔴 Tipos de Erro Injetados
+- **Cliente → Servidor**: Remove campo `operacao` do JSON
+- **Servidor → Cliente**: Remove campo `status` do JSON
+- **Logs marcados** com 🔴 quando erros são injetados
 
 ## 📋 Funcionalidades Implementadas (EP-2)
 
