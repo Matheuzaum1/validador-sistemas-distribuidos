@@ -26,6 +26,8 @@ public class SimpleErrorInjectorMain extends JFrame implements ActionListener {
     // Estado do proxy
     private ServerSocket proxySocket;
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private volatile boolean firstMessagePassed = false; // Para permitir 'conectar' passar
+    private volatile boolean waitingConnectResponse = false; // Aguardando resposta do conectar
     
     // Cores
     private static final Color GREEN = new Color(76, 175, 80);
@@ -183,6 +185,10 @@ public class SimpleErrorInjectorMain extends JFrame implements ActionListener {
     
     private void handleClient(Socket clientSocket, String serverHost, int serverPort) {
         Socket serverSocket = null;
+        // Reset para cada nova conexão de cliente
+        firstMessagePassed = false;
+        waitingConnectResponse = false;
+        
         try {
             // Conectar ao servidor real
             serverSocket = new Socket(serverHost, serverPort);
@@ -232,16 +238,39 @@ public class SimpleErrorInjectorMain extends JFrame implements ActionListener {
                 String originalMessage = line;
                 String processedMessage = line;
                 
-                // Aplicar injeção de erro se ativada
-                if (isClientMessage && clientErrorCheckBox.isSelected()) {
-                    processedMessage = injectClientError(line);
-                    if (!processedMessage.equals(originalMessage)) {
-                        log("🔴 ERRO INJETADO (Cliente): " + processedMessage);
+                // IMPORTANTE: Permitir a primeira mensagem (conectar) e sua resposta passar sem injeção
+                // Conforme seção 5.3 do protocolo, a primeira operação DEVE ser 'conectar'
+                boolean skipInjection = false;
+                
+                if (isClientMessage && !firstMessagePassed) {
+                    // Primeira mensagem do cliente (deve ser conectar)
+                    if (line.contains("\"operacao\"") && line.contains("\"conectar\"")) {
+                        firstMessagePassed = true;
+                        waitingConnectResponse = true;
+                        skipInjection = true;
+                        log("✅ Mensagem 'conectar' permitida passar sem injeção");
                     }
-                } else if (!isClientMessage && serverErrorCheckBox.isSelected()) {
-                    processedMessage = injectServerError(line);
-                    if (!processedMessage.equals(originalMessage)) {
-                        log("🔴 ERRO INJETADO (Servidor): " + processedMessage);
+                } else if (!isClientMessage && waitingConnectResponse) {
+                    // Resposta do servidor para conectar
+                    if (line.contains("\"operacao\"") && line.contains("\"conectar\"")) {
+                        waitingConnectResponse = false;
+                        skipInjection = true;
+                        log("✅ Resposta 'conectar' permitida passar sem injeção");
+                    }
+                }
+                
+                // Aplicar injeção de erro se ativada (e não for mensagem de conexão)
+                if (!skipInjection) {
+                    if (isClientMessage && clientErrorCheckBox.isSelected()) {
+                        processedMessage = injectClientError(line);
+                        if (!processedMessage.equals(originalMessage)) {
+                            log("🔴 ERRO INJETADO (Cliente): " + processedMessage);
+                        }
+                    } else if (!isClientMessage && serverErrorCheckBox.isSelected()) {
+                        processedMessage = injectServerError(line);
+                        if (!processedMessage.equals(originalMessage)) {
+                            log("🔴 ERRO INJETADO (Servidor): " + processedMessage);
+                        }
                     }
                 }
                 

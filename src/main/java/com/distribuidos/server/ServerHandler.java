@@ -553,12 +553,14 @@ public class ServerHandler extends Thread {
             com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
             
             // Conforme protocolo 4.11, operacao_enviada pode ser null se operacao estava ausente/nula
-            String operacaoEnviada = "null";
+            final String operacaoEnviada;
             if (node.has("operacao_enviada") && !node.get("operacao_enviada").isNull()) {
                 operacaoEnviada = node.get("operacao_enviada").asText();
+            } else {
+                operacaoEnviada = "null";
             }
             
-            String info = node.get("info").asText();
+            final String info = node.get("info").asText();
             
             // Incrementa contador de erros reportados
             int totalErrors = errorReportsCount.incrementAndGet();
@@ -577,6 +579,14 @@ public class ServerHandler extends Thread {
                 serverGUI.addLogMessage("💬 Descrição: " + info);
                 serverGUI.addLogMessage("📊 Total de erros reportados: " + totalErrors);
                 serverGUI.addLogMessage("================================");
+                
+                // Mostrar popup de erro no servidor
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    com.distribuidos.common.ToastNotification.showError(
+                        "Erro Reportado pelo Cliente",
+                        "Operação: " + operacaoEnviada + "\n" + info
+                    );
+                });
             }
             
             // Resposta de confirmação ao cliente

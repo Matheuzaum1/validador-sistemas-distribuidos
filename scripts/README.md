@@ -1,295 +1,403 @@
-# 📋 Scripts de Gerenciamento - Sistema Distribuído
+# Scripts de Automação v2.0 - Validador Sistemas Distribuídos
 
-Todos os scripts estão na pasta `scripts/` e foram otimizados para facilitar a execução do projeto.
+Este documento descreve todos os scripts disponíveis para gerenciamento do projeto.
 
-## 🚀 Quick Start
+## 📋 Índice
 
-Para iniciar o sistema completo:
+1. [Menu Principal](#menu-principal)
+2. [Compilação](#compilação)
+3. [Servidor](#servidor)
+4. [Cliente](#cliente)
+5. [Sistema Completo](#sistema-completo)
+6. [Error Injector](#error-injector)
+7. [Sistema com Proxy](#sistema-com-proxy)
+8. [Limpeza](#limpeza)
+9. [Configuração de Ambiente](#configuração-de-ambiente)
+10. [Fluxos de Trabalho](#fluxos-de-trabalho)
+
+---
+
+## Menu Principal
+
+### `menu.ps1`
+Menu interativo que centraliza todas as operações do projeto.
 
 ```powershell
-.\scripts\sistema.ps1
+.\menu.ps1
 ```
 
-Ou use o menu interativo:
+**Opções disponíveis:**
+| Opção | Descrição |
+|-------|-----------|
+| 1 | Compilar projeto principal |
+| 2 | Compilar Error Injector |
+| 3 | Iniciar Servidor |
+| 4 | Iniciar Cliente |
+| 5 | Sistema Completo (Servidor + Cliente) |
+| 6 | Sistema com Proxy (Servidor + Error Injector + Cliente) |
+| 7 | Limpar artefatos de build |
+| 8 | Configurar ambiente |
+| 9 | Sair |
 
+---
+
+## Compilação
+
+### `compilar.ps1`
+Compila o projeto usando Maven.
+
+**Uso básico:**
 ```powershell
-.\scripts\menu.ps1
+# Compilar projeto principal
+.\compilar.ps1
+
+# Compilar error-injector
+.\compilar.ps1 -errorInjector
+
+# Compilar ambos
+.\compilar.ps1 -all
+```
+
+**Parâmetros:**
+| Parâmetro | Descrição | Padrão |
+|-----------|-----------|--------|
+| `-skipTests` | Pular testes durante compilação | `false` |
+| `-clean` | Executar clean antes de compilar | `false` |
+| `-errorInjector` | Compilar projeto error-injector | `false` |
+| `-all` | Compilar todos os projetos | `false` |
+
+**Exemplos:**
+```powershell
+# Compilação rápida sem testes
+.\compilar.ps1 -skipTests
+
+# Limpar e recompilar tudo
+.\compilar.ps1 -clean -all
 ```
 
 ---
 
-## 📜 Scripts Disponíveis
+## Servidor
 
-### 1️⃣ `menu.ps1` - Menu Interativo ⭐ RECOMENDADO
+### `servidor.ps1`
+Inicia o servidor do sistema.
 
-Menu interativo com todas as opções em um só lugar.
-
+**Uso:**
 ```powershell
-.\scripts\menu.ps1
+# Porta padrão (8080)
+.\servidor.ps1
+
+# Porta customizada
+.\servidor.ps1 -port 9000
 ```
 
-**Oferece:**
-- 🚀 Executar sistema completo
-- 🖥️ Iniciar servidor
-- 💻 Iniciar cliente
-- 🔨 Compilar projeto
-- 🗑️ Limpar e recompilar
-- 📖 Ver instruções
+**Parâmetros:**
+| Parâmetro | Descrição | Padrão |
+|-----------|-----------|--------|
+| `-port` | Porta do servidor | `8080` |
 
 ---
 
-### 2️⃣ `sistema.ps1` - Sistema Completo
+## Cliente
 
-Inicia servidor e cliente automaticamente em janelas separadas.
+### `cliente.ps1`
+Inicia o cliente com interface gráfica.
 
+**Uso:**
 ```powershell
-# Uso padrão
-.\scripts\sistema.ps1
+# Conectar ao servidor local
+.\cliente.ps1
 
-# Argumentos
-.\scripts\sistema.ps1 -port 9000          # Usa porta 9000
-.\scripts\sistema.ps1 -rebuild             # Recompila antes de iniciar
+# Conectar a servidor remoto
+.\cliente.ps1 -host "192.168.1.100" -port 9000
 ```
 
-**Características:**
-- ✅ Verifica disponibilidade de porta
-- ✅ Compila automaticamente se necessário
-- ✅ Inicializa servidor e cliente
-- ✅ Aguarda 3 segundos para servidor inicializar
-- ✅ Banner ASCII visual
+**Parâmetros:**
+| Parâmetro | Descrição | Padrão |
+|-----------|-----------|--------|
+| `-host` | Endereço do servidor | `localhost` |
+| `-port` | Porta do servidor | `8080` |
 
 ---
 
-### 3️⃣ `compilar.ps1` - Compilação
+## Sistema Completo
 
-Compila o projeto Maven e gera o JAR.
+### `sistema.ps1`
+Inicia servidor e cliente automaticamente.
 
+**Uso:**
 ```powershell
-# Uso padrão
-.\scripts\compilar.ps1
+# Configuração padrão
+.\sistema.ps1
 
-# Argumentos
-.\scripts\compilar.ps1 -test               # Executa testes também
-.\scripts\compilar.ps1 -clean:$false       # Não faz limpeza prévia
+# Porta customizada
+.\sistema.ps1 -port 9000
 ```
 
-**Características:**
-- ✅ Verifica se Maven está instalado
-- ✅ Limpeza de builds anteriores
-- ✅ Mostra tamanho do JAR gerado
-- ✅ Detecção automática de erros
+**Parâmetros:**
+| Parâmetro | Descrição | Padrão |
+|-----------|-----------|--------|
+| `-port` | Porta para servidor e cliente | `8080` |
+| `-clientCount` | Número de clientes a iniciar | `1` |
+
+**Comportamento:**
+1. Inicia o servidor na porta especificada
+2. Aguarda 2 segundos para servidor estabilizar
+3. Inicia o(s) cliente(s) conectando ao servidor
 
 ---
 
-### 4️⃣ `servidor.ps1` - Servidor
+## Error Injector
 
-Inicia apenas o servidor na porta 8080 (ou customizada).
+### `error-injector.ps1`
+Inicia o proxy de injeção de erros para testes.
 
+**Uso:**
 ```powershell
-# Uso padrão
-.\scripts\servidor.ps1
+# Configuração padrão (proxy:9999 -> servidor:8080)
+.\error-injector.ps1
 
-# Argumentos
-.\scripts\servidor.ps1 -port 9000          # Usa porta 9000
+# Configuração customizada
+.\error-injector.ps1 -proxyPort 7777 -serverPort 8080
+
+# Servidor remoto
+.\error-injector.ps1 -serverHost "192.168.1.100" -serverPort 8080
 ```
 
-**Características:**
-- ✅ Verifica se porta está disponível
-- ✅ Oferece opção de encerrar processo na porta
-- ✅ Compila automaticamente se JAR não existir
-- ✅ Teste de disponibilidade de porta antes de iniciar
+**Parâmetros:**
+| Parâmetro | Descrição | Padrão |
+|-----------|-----------|--------|
+| `-proxyPort` | Porta do proxy | `9999` |
+| `-serverHost` | Host do servidor real | `localhost` |
+| `-serverPort` | Porta do servidor real | `8080` |
+
+**Como funciona:**
+```
+Cliente ──► Proxy (9999) ──► Servidor (8080)
+              │
+              ▼
+        Injeta erros
+        aleatoriamente
+```
+
+**Tipos de erros injetados:**
+- **JSON inválido**: `{operacao: sem_aspas}`
+- **Campos faltando**: `{"operacao": "teste"}`
+- **Tipos errados**: `{"operacao": 12345, "status": "nao_booleano"}`
+- **Dados corrompidos**: `{"dados": "%%%CORRUPTED%%%"}`
 
 ---
 
-### 5️⃣ `cliente.ps1` - Cliente
+## Sistema com Proxy
 
-Inicia apenas o cliente com interface gráfica.
+### `sistema-proxy.ps1`
+Inicia o sistema completo com proxy de injeção de erros.
 
+**Uso:**
 ```powershell
-# Uso padrão
-.\scripts\cliente.ps1
+# Configuração padrão
+.\sistema-proxy.ps1
 
-# Argumentos
-.\scripts\cliente.ps1 -host 192.168.1.100  # Conecta em outro host
-.\scripts\cliente.ps1 -port 9000            # Conecta em porta diferente
+# Configuração customizada
+.\sistema-proxy.ps1 -serverPort 8080 -proxyPort 9999
 ```
 
-**Características:**
-- ✅ Testa conexão com servidor antes de iniciar
-- ✅ Mostra aviso se servidor não estiver disponível
-- ✅ Compila automaticamente se JAR não existir
-- ✅ Suporte a host e porta customizáveis
+**Parâmetros:**
+| Parâmetro | Descrição | Padrão |
+|-----------|-----------|--------|
+| `-serverPort` | Porta do servidor | `8080` |
+| `-proxyPort` | Porta do proxy | `9999` |
+| `-clientCount` | Número de clientes | `1` |
+
+**Arquitetura:**
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Sistema com Proxy                      │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  ┌──────────┐    ┌─────────────┐    ┌──────────────┐   │
+│  │ Cliente  │───►│ Error Proxy │───►│   Servidor   │   │
+│  │ (GUI)    │    │   (9999)    │    │    (8080)    │   │
+│  └──────────┘    └─────────────┘    └──────────────┘   │
+│                         │                               │
+│                         ▼                               │
+│                  Injeção de erros                       │
+│                  para testes                            │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Sequência de inicialização:**
+1. Inicia servidor na porta 8080
+2. Aguarda 2 segundos
+3. Inicia proxy na porta 9999 (aponta para 8080)
+4. Aguarda 1 segundo
+5. Inicia cliente conectando na porta 9999 (proxy)
 
 ---
 
-### 6️⃣ `limpeza.ps1` - Limpeza de Build
+## Limpeza
 
-Remove arquivos gerados e cache do projeto.
+### `limpeza.ps1`
+Remove artefatos de build e arquivos temporários.
 
+**Uso:**
 ```powershell
-# Limpeza padrão (remove apenas target/)
-.\scripts\limpeza.ps1
+# Limpeza básica
+.\limpeza.ps1
 
-# Argumentos
-.\scripts\limpeza.ps1 -completa             # Remove também database e logs
-.\scripts\limpeza.ps1 -completa -rebuild    # Limpeza total + recompila
+# Limpeza completa (inclui .m2 local)
+.\limpeza.ps1 -full
 ```
 
-**Características:**
-- ✅ Remove pasta `target/`
-- ✅ Opção de remover database (usuarios.db)
-- ✅ Opção de remover logs/
-- ✅ Opção de recompilar automaticamente
+**O que é removido:**
+- `target/` - Diretório de build principal
+- `error-injector/target/` - Build do error-injector
+- `*.class` - Classes compiladas soltas
+- `*.log` - Arquivos de log
+- `dependency-reduced-pom.xml` - Gerado pelo shade plugin
 
 ---
 
-## 🎯 Fluxos de Trabalho Comuns
+## Configuração de Ambiente
 
-### 🔄 Desenvolvimento: Testar Mudanças Rápido
+### `configurar-java.ps1`
+Configura o ambiente Java para o projeto.
+
 ```powershell
-# Terminal 1: Compilar e manter em watch
-.\scripts\limpeza.ps1 -completa -rebuild
-
-# Terminal 2: Iniciar servidor
-.\scripts\servidor.ps1
-
-# Terminal 3: Iniciar cliente
-.\scripts\cliente.ps1
+.\configurar-java.ps1
 ```
 
-### 🚀 Produção: Primeiro Uso
+**Funcionalidades:**
+- Detecta instalações de Java no sistema
+- Configura JAVA_HOME
+- Verifica versão mínima (Java 11+)
+
+### `setup-ambiente.ps1`
+Configuração completa do ambiente de desenvolvimento.
+
 ```powershell
-.\scripts\sistema.ps1
+.\setup-ambiente.ps1
 ```
 
-### 🧹 Quando Algo Quebrou
-```powershell
-# Limpeza completa + recompilação
-.\scripts\limpeza.ps1 -completa -rebuild
+**Verificações:**
+- Java instalado e configurado
+- Maven instalado e configurado
+- Conectividade com repositórios Maven
 
-# Depois
-.\scripts\sistema.ps1
-```
-
-### 🔧 Testar em Porta Diferente
-```powershell
-# Terminal 1
-.\scripts\servidor.ps1 -port 9000
-
-# Terminal 2
-.\scripts\cliente.ps1 -port 9000
-```
-
-### 🌐 Conectar em Outro Host
-```powershell
-# Supondo que o servidor está em 192.168.1.50
-.\scripts\cliente.ps1 -host 192.168.1.50
-```
-
----
-
-## 📊 Features dos Scripts
-
-| Feature | menu.ps1 | sistema.ps1 | compilar.ps1 | servidor.ps1 | cliente.ps1 | limpeza.ps1 |
-|---------|----------|-------------|--------------|--------------|-------------|------------|
-| Compilação automática | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Verificação de Maven | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Teste de porta | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Teste de servidor | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| Argumentos customizáveis | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Feedback visual melhorado | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Menu interativo | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-
----
-
-## 🔧 Variáveis Padrão
-
-Se desejar customizar os padrões, edite os scripts e modifique:
+### `java-env.ps1`
+Script auxiliar para variáveis de ambiente Java.
 
 ```powershell
-# compilar.ps1
-$JAR_PATH = "target\validador-sistemas-distribuidos-1.0.0.jar"
-
-# servidor.ps1
-$JAVA_MAIN = "com.distribuidos.server.ServerMain"
-$port = 8080  # Padrão
-
-# cliente.ps1
-$JAVA_MAIN = "com.distribuidos.client.ClientMain"
-$host = "localhost"  # Padrão
-$port = 8080  # Padrão
-```
-
----
-
-## ⚠️ Troubleshooting
-
-### "Maven não está instalado"
-```powershell
-# Instale Maven ou adicione ao PATH
-# Verifique com:
-mvn --version
-```
-
-### "Porta X já está em uso"
-```powershell
-# Use outra porta
-.\scripts\servidor.ps1 -port 9000
-
-# Ou deixe o script encerrar o processo (será perguntado)
-```
-
-### "JAR não foi gerado"
-```powershell
-# Tente recompilar
-.\scripts\limpeza.ps1 -completa -rebuild
-```
-
-### "Cliente não consegue conectar"
-```powershell
-# 1. Verifique se servidor está rodando
-# 2. Use outro host/porta:
-.\scripts\cliente.ps1 -host 192.168.1.100 -port 9000
-
-# 3. Teste manualmente:
-java -cp target/validador-sistemas-distribuidos-1.0.0.jar com.distribuidos.client.ClientMain
+. .\java-env.ps1
 ```
 
 ---
 
-## 📝 Notas Importantes
+## Fluxos de Trabalho
 
-- ✅ Todos os scripts têm verificações de erro robustas
-- ✅ Mensagens de erro são claras e indicam próximos passos
-- ✅ Compilação é automática quando necessário
-- ✅ Scripts são idempotentes (podem ser executados múltiplas vezes)
-- ✅ Suportam argumentos via linha de comando
-- ✅ Compatível com PowerShell 5.0+
-
----
-
-## 🎓 Exemplo Completo
+### 🚀 Desenvolvimento Normal
 
 ```powershell
-# 1. Ver menu
-.\scripts\menu.ps1
+# 1. Compilar
+.\compilar.ps1
 
-# 2. Escolher opção 1 (Sistema completo)
-# Ou fazer manualmente:
+# 2. Iniciar sistema
+.\sistema.ps1
+```
 
-# 3. Compilar
-.\scripts\compilar.ps1
+### 🧪 Testes com Injeção de Erros
 
-# 4. Iniciar servidor (Terminal 1)
-.\scripts\servidor.ps1
+```powershell
+# 1. Compilar tudo
+.\compilar.ps1 -all
 
-# 5. Iniciar cliente (Terminal 2)
-.\scripts\cliente.ps1
+# 2. Iniciar sistema com proxy
+.\sistema-proxy.ps1
 
-# 6. Quando quiser limpar tudo
-.\scripts\limpeza.ps1 -completa -rebuild
+# Ou manualmente:
+# Terminal 1: .\servidor.ps1
+# Terminal 2: .\error-injector.ps1
+# Terminal 3: .\cliente.ps1 -port 9999
+```
+
+### 🔄 Reconstrução Completa
+
+```powershell
+# 1. Limpar
+.\limpeza.ps1
+
+# 2. Recompilar tudo
+.\compilar.ps1 -clean -all
+
+# 3. Testar
+.\sistema-proxy.ps1
+```
+
+### 🐛 Depuração de Erros
+
+```powershell
+# 1. Iniciar servidor com logs detalhados
+.\servidor.ps1
+
+# 2. Em outro terminal, iniciar proxy
+.\error-injector.ps1
+
+# 3. Em outro terminal, iniciar cliente no proxy
+.\cliente.ps1 -port 9999
+
+# 4. Observar logs em cada terminal
+# - Servidor: erros de protocolo recebidos
+# - Proxy: mensagens interceptadas e modificadas
+# - Cliente: erro_servidor enviados e respostas recebidas
 ```
 
 ---
 
-**Desenvolvido para facilitar a execução do Sistema Distribuído** 🚀
+## 📝 Notas
+
+### Portas Padrão
+| Componente | Porta |
+|------------|-------|
+| Servidor | 8080 |
+| Proxy Error Injector | 9999 |
+
+### Requisitos
+- Java 11 ou superior
+- Maven 3.6 ou superior
+- PowerShell 5.1 ou superior (Windows)
+
+### Logs
+Todos os componentes usam SLF4J/Logback para logging. Os logs são exibidos:
+- No console de cada componente
+- No painel de logs da GUI do cliente
+
+---
+
+## 🔧 Troubleshooting
+
+### Erro: "Porta já em uso"
+```powershell
+# Encontrar processo na porta
+netstat -ano | findstr :8080
+
+# Matar processo pelo PID
+taskkill /PID <pid> /F
+```
+
+### Erro: "Java não encontrado"
+```powershell
+# Configurar ambiente Java
+.\configurar-java.ps1
+
+# Ou definir JAVA_HOME manualmente
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-11"
+```
+
+### Erro: "Conexão recusada"
+1. Verifique se o servidor está rodando
+2. Verifique a porta correta
+3. Se usando proxy, verifique se está conectando na porta do proxy (9999)
+
+### Proxy não injeta erros
+O proxy **não** injeta erros na primeira mensagem `conectar` para permitir que a conexão seja estabelecida. Erros são injetados apenas após a conexão inicial.

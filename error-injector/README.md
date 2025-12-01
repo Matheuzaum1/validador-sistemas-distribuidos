@@ -39,10 +39,16 @@ java -jar target/simple-error-injector-1.0.0.jar
 - **Cliente → Servidor**: Remove campo `operacao` do JSON
 - **Servidor → Cliente**: Remove campo `status` do JSON
 
+### ⚠️ Comportamento Importante
+- A primeira mensagem (`conectar`) e sua resposta **NUNCA** são modificadas
+- Isso garante que a conexão seja estabelecida antes de injetar erros
+- Conforme seção 5.3 do protocolo, a primeira operação deve ser `conectar`
+
 ### Logs
 - Timestamp de todas as mensagens
 - Identificação da direção (CLIENTE→SERVIDOR / SERVIDOR→CLIENTE)
 - Indicação clara quando erros são injetados (🔴)
+- Indicação quando mensagens de conexão passam sem injeção (✅)
 - Status de conexões e desconexões
 
 ### Interface
