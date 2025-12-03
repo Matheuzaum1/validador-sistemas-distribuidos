@@ -1,52 +1,56 @@
 #!/bin/bash
-# Menu interativo para gerenciar o sistema - Linux/macOS
+# Script para executar sistema completo - Linux/macOS
 set -e
 
+PORT=${1:-20000}
+REBUILD=${2:-false}
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$PROJECT_ROOT"
+JAR_PATH="target/validador-sistemas-distribuidos-1.0.0.jar"
 
-echo "🏦 Sistema Bancário Distribuído - EP-2"
-echo "=================================="
-echo ""
-echo "Escolha uma opção:"
-echo "1) 🔨 Compilar projeto"
-echo "2) 🚀 Iniciar servidor"
-echo "3) 🖥️  Iniciar cliente"
-echo "4) 🔄 Compilar e iniciar servidor"
-echo "5) 🛑 Parar processos Java"
-echo "6) ❌ Sair"
-echo ""
-read -p "Digite sua opção (1-6): " option
+echo "🚀 Iniciando SISTEMA DISTRIBUÍDO..."
 
-case $option in
-    1)
-        echo "🔨 Compilando projeto..."
-        ./scripts/compilar.sh
-        ;;
-    2)
-        echo "🚀 Iniciando servidor..."
-        ./scripts/servidor.sh
-        ;;
-    3)
-        echo "🖥️  Iniciando cliente..."
-        ./scripts/cliente.sh
-        ;;
-    4)
-        echo "🔄 Compilando e iniciando servidor..."
-        ./scripts/compilar.sh
-        ./scripts/servidor.sh
-        ;;
-    5)
-        echo "🛑 Parando processos Java..."
-        pkill -f "java.*validador-sistemas-distribuidos" || echo "Nenhum processo encontrado"
-        echo "✅ Processos finalizados"
-        ;;
-    6)
-        echo "❌ Saindo..."
-        exit 0
-        ;;
-    *)
-        echo "❌ Opção inválida! Use 1-6"
-        exit 1
-        ;;
-esac
+# Compilar se necessário
+if [ "$REBUILD" = "true" ] || [ ! -f "$PROJECT_ROOT/$JAR_PATH" ]; then
+    echo "🔨 Compilando projeto..."
+    "$PROJECT_ROOT/scripts/compilar.sh"
+fi
+
+echo ""
+echo "🖥️  Abrindo servidor em nova janela..."
+
+# Detectar terminal disponível e abrir servidor
+if command -v gnome-terminal &> /dev/null; then
+    gnome-terminal -- bash -c "$PROJECT_ROOT/scripts/servidor.sh $PORT; exec bash"
+elif command -v xterm &> /dev/null; then
+    xterm -e "bash -c '$PROJECT_ROOT/scripts/servidor.sh $PORT; exec bash'" &
+elif command -v konsole &> /dev/null; then
+    konsole -e bash -c "$PROJECT_ROOT/scripts/servidor.sh $PORT; exec bash" &
+else
+    echo "⚠️  Terminal gráfico não encontrado. Execute manualmente:"
+    echo "   ./scripts/servidor.sh $PORT"
+    echo ""
+    read -p "Pressione Enter quando o servidor estiver rodando..."
+fi
+
+echo "⏳ Aguardando servidor iniciar..."
+sleep 3
+
+echo "🖥️  Abrindo cliente em nova janela..."
+
+# Detectar terminal disponível e abrir cliente
+if command -v gnome-terminal &> /dev/null; then
+    gnome-terminal -- bash -c "$PROJECT_ROOT/scripts/cliente.sh localhost $PORT; exec bash"
+elif command -v xterm &> /dev/null; then
+    xterm -e "bash -c '$PROJECT_ROOT/scripts/cliente.sh localhost $PORT; exec bash'" &
+elif command -v konsole &> /dev/null; then
+    konsole -e bash -c "$PROJECT_ROOT/scripts/cliente.sh localhost $PORT; exec bash" &
+else
+    echo "⚠️  Terminal gráfico não encontrado. Execute manualmente:"
+    echo "   ./scripts/cliente.sh localhost $PORT"
+fi
+
+echo ""
+echo "✅ Sistema iniciado! Verifique as janelas abertas."
+echo "📋 Configuração:"
+echo "   Servidor: localhost:$PORT"
+echo "   Cliente: conectando em localhost:$PORT"
